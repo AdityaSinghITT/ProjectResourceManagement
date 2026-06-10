@@ -1,0 +1,6 @@
+export const PrismaErrorCodes = {
+  CONNECTION_FAILED: 'P1001',
+  UNIQUE_VIOLATION: 'P2002',
+  FOREIGN_KEY_VIOLATION: 'P2003',
+  COLUMN_NOT_FOUND: 'P2022',
+} as const;
