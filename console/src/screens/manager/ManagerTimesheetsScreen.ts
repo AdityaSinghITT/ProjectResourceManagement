@@ -32,8 +32,9 @@ export const ManagerTimesheetsScreen: Screen = {
         console.log('No team rows for this week.');
       } else {
         printTable(
-          ['Employee', 'Project', 'Hrs', 'Status'],
+          ['ID', 'Employee', 'Project', 'Hrs', 'Status'],
           result.rows.map((row) => [
+            String(row.resourceProfileId ?? row.employeeId ?? '—'),
             row.employeeName,
             row.projectName,
             row.hours === null ? '—' : String(row.hours),
@@ -44,9 +45,11 @@ export const ManagerTimesheetsScreen: Screen = {
 
       const choice = await context.prompt.ask('\n[V] View employee timesheet detail     [B] Back\nChoice: ');
       if (choice.toUpperCase() === 'V') {
-        const employeeId = Number(await context.prompt.ask('Enter Employee ID: '));
+        const resourceProfileId = Number(
+          await context.prompt.ask('Enter Resource profile ID (from table ID column): '),
+        );
         const detail = (await context.manager.getEmployeeTimesheet(
-          employeeId,
+          resourceProfileId,
           result.weekStart,
         )) as {
           weekStart: string;

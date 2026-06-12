@@ -4,6 +4,11 @@ export const EnvKeys = {
   JWT_EXPIRES_IN: 'JWT_EXPIRES_IN',
   PORT: 'PORT',
   NODE_ENV: 'NODE_ENV',
+  ENABLE_SCHEDULER: 'ENABLE_SCHEDULER',
+  LLM_BASE_URL: 'LLM_BASE_URL',
+  LLM_API_KEY: 'LLM_API_KEY',
+  LLM_MODEL: 'LLM_MODEL',
+  LLM_PROVIDER: 'LLM_PROVIDER',
 } as const;
 
 export const EnvDefaults = {

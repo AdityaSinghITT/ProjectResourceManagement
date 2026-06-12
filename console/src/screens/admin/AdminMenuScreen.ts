@@ -7,6 +7,8 @@ import { ManageProjectsScreen } from './ManageProjectsScreen';
 import { ManageUsersScreen } from './ManageUsersScreen';
 import { SystemConfigScreen } from './SystemConfigScreen';
 import { ViewAllocationsScreen } from './ViewAllocationsScreen';
+import { ResetUserPasswordScreen } from './ResetUserPasswordScreen';
+import { ChangeMyPasswordScreen } from '../common/ChangeMyPasswordScreen';
 
 export const AdminMenuScreen: Screen = {
   name: 'AdminMenuScreen',
@@ -21,7 +23,9 @@ export const AdminMenuScreen: Screen = {
     console.log('3. View All Allocations');
     console.log('4. Manage Users');
     console.log('5. System Configuration');
-    console.log('6. Logout\n');
+    console.log('6. Change My Password');
+    console.log('7. Reset User Password');
+    console.log('8. Logout\n');
 
     const choice = await context.prompt.ask('Enter option: ');
 
@@ -37,6 +41,10 @@ export const AdminMenuScreen: Screen = {
       case '5':
         return { type: 'push', screen: SystemConfigScreen };
       case '6':
+        return { type: 'push', screen: ChangeMyPasswordScreen };
+      case '7':
+        return { type: 'push', screen: ResetUserPasswordScreen };
+      case '8':
         try {
           await context.auth.logout();
         } catch {

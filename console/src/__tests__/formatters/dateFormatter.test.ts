@@ -3,7 +3,7 @@ import {
   getLastMondayApiDate,
   parseDisplayDateToApi,
   parseWeekStartInput,
-} from './dateFormatter';
+} from '../../ui/formatters/dateFormatter';
 
 describe('dateFormatter', () => {
   it('converts API date to DD-MM-YYYY display format', () => {

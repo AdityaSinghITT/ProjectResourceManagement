@@ -1,11 +1,11 @@
 import { ProjectStatus } from '@prisma/client';
-import { IAllocationRepository } from '../../domain/interfaces/IAllocationRepository';
-import { IProjectRepository } from '../../domain/interfaces/IProjectRepository';
-import { AppError } from '../../shared/errors/AppError';
-import { HttpStatus } from '../../shared/constants/httpStatusCodes';
-import { ManagerMessages } from '../../shared/constants/managerMessages';
-import { ProjectHealthService } from './ProjectHealthService';
-import { ManagerProjectService } from './ManagerProjectService';
+import { IAllocationRepository } from '../../../domain/interfaces/IAllocationRepository';
+import { IProjectRepository } from '../../../domain/interfaces/IProjectRepository';
+import { AppError } from '../../../shared/errors/AppError';
+import { HttpStatus } from '../../../shared/constants/httpStatusCodes';
+import { ManagerMessages } from '../../../shared/constants/managerMessages';
+import { ProjectHealthService } from '../../services/ProjectHealthService';
+import { ManagerProjectService } from '../../services/ManagerProjectService';
 
 describe('ManagerProjectService', () => {
   const projectRepository: jest.Mocked<IProjectRepository> = {
@@ -27,11 +27,11 @@ describe('ManagerProjectService', () => {
     findById: jest.fn(),
     endAllocation: jest.fn(),
     listAdmin: jest.fn(),
-    listOverlappingForEmployee: jest.fn(),
-    listActiveByEmployee: jest.fn(),
+    listOverlappingForResourceProfile: jest.fn(),
+    listActiveByResourceProfile: jest.fn(),
     getCurrentUtilizationPercent: jest.fn(),
-    listActiveViewsByEmployee: jest.fn(),
-    listOverlappingViewsForEmployee: jest.fn(),
+    listActiveViewsByResourceProfile: jest.fn(),
+    listOverlappingViewsForResourceProfile: jest.fn(),
     listOverlappingViewsForProject: jest.fn(),
   };
 

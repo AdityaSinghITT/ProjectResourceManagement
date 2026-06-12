@@ -45,6 +45,10 @@ export const ManagerRoutes = {
   ALLOCATION_END: '/allocations/:id/end',
   TIMESHEETS: '/timesheets',
   TIMESHEET_EMPLOYEE: '/timesheets/:employeeId',
+  AI_SKILL_MATCH: '/ai/skill-match',
+  AI_TEAM_BUILDER: '/ai/team-builder',
+  ALLOCATIONS_AI_MATCH: '/allocations/ai-match',
+  PROJECT_AI_RISK_SUMMARY: '/projects/:id/ai-risk-summary',
 } as const;
 
 export const EmployeeRoutes = {

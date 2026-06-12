@@ -78,7 +78,7 @@ export interface SubmitTimesheetEntryInput {
 }
 
 export interface ManagerTeamTimesheetRow {
-  employeeId: number;
+  resourceProfileId: number;
   employeeName: string;
   projectId: number;
   projectName: string;

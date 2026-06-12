@@ -1,5 +1,6 @@
 import { HttpClient } from './HttpClient';
 import {
+  AiRiskSummaryResult,
   AllocationRequest,
   AllocationValidationResult,
   AllocationView,
@@ -8,6 +9,8 @@ import {
   ManagerProjectListResult,
   ManagerTeamTimesheetResult,
   ResourceDashboardResult,
+  SkillMatchResult,
+  TeamBuilderResult,
 } from './types/manager.types';
 
 export class ManagerApi {
@@ -47,5 +50,21 @@ export class ManagerApi {
 
   getEmployeeTimesheet(employeeId: number, weekStart?: string): Promise<unknown> {
     return this.http.get(`/api/manager/timesheets/${employeeId}`, { weekStart });
+  }
+
+  skillMatch(requirement: string): Promise<SkillMatchResult> {
+    return this.http.post<SkillMatchResult>('/api/manager/ai/skill-match', { requirement });
+  }
+
+  allocationsAiMatch(requirement: string): Promise<SkillMatchResult> {
+    return this.http.post<SkillMatchResult>('/api/manager/allocations/ai-match', { requirement });
+  }
+
+  teamBuilder(requirement: string): Promise<TeamBuilderResult> {
+    return this.http.post<TeamBuilderResult>('/api/manager/ai/team-builder', { requirement });
+  }
+
+  projectRiskSummary(projectId: number): Promise<AiRiskSummaryResult> {
+    return this.http.post<AiRiskSummaryResult>(`/api/manager/projects/${projectId}/ai-risk-summary`);
   }
 }

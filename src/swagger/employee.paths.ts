@@ -1,4 +1,5 @@
 import { ApiRoutes, EmployeeRoutes } from '../shared/constants/apiRoutes';
+import { forbiddenRbacResponse, rbacDescription } from './swaggerCommon';
 
 const bearerSecurity = [{ BearerAuth: [] }];
 const employeeBase = ApiRoutes.EMPLOYEE_BASE;
@@ -40,7 +41,7 @@ const submitTimesheetBody = {
               properties: {
                 projectId: {
                   type: 'integer',
-                  example: 1,
+                  example: 201,
                   description: 'From GET /api/employee/allocations',
                 },
                 hours: { type: 'number', example: 18 },
@@ -71,68 +72,80 @@ const submitTimesheetBody = {
 export const employeePaths = {
   [ApiRoutes.ACTIVITY_TAGS]: {
     get: {
-      tags: ['Employee'],
+      tags: ['Resource'],
       summary: 'List activity tag catalog',
-      description: 'Available to any authenticated user with password changed',
+      description:
+        rbacDescription('ACTIVITY_TAGS:LIST', 'ADMIN | MANAGER | RESOURCE') +
+        ' Any authenticated role with this permission may call this endpoint.',
       security: bearerSecurity,
       responses: {
         '200': { description: 'Activity tags returned' },
         '401': { description: 'Unauthorized' },
+        ...forbiddenRbacResponse,
       },
     },
   },
   [openApiPath(EmployeeRoutes.ALLOCATIONS)]: {
     get: {
-      tags: ['Employee'],
-      summary: 'List allocatable projects for a week',
+      tags: ['Resource'],
+      summary: 'List own allocations (BRD Screen 5.3)',
+      description: rbacDescription('ALLOCATIONS:READ', 'RESOURCE'),
       security: bearerSecurity,
       parameters: [weekStartQuery],
       responses: {
-        '200': { description: 'Allocations with per-project hour caps' },
-        '403': { description: 'Employee role required' },
+        '200': { description: 'Own allocations with utilisation' },
+        ...forbiddenRbacResponse,
       },
     },
   },
   [openApiPath(EmployeeRoutes.TIMESHEET_REMINDER)]: {
     get: {
-      tags: ['Employee'],
+      tags: ['Resource'],
       summary: 'Check if prior week timesheet is missing',
+      description: rbacDescription('TIMESHEETS:READ', 'RESOURCE'),
       security: bearerSecurity,
       responses: {
         '200': { description: 'Reminder flag returned' },
+        ...forbiddenRbacResponse,
       },
     },
   },
   [openApiPath(EmployeeRoutes.TIMESHEETS)]: {
     get: {
-      tags: ['Employee'],
-      summary: 'List submitted and missed timesheet history',
+      tags: ['Resource'],
+      summary: 'List own submitted and missed timesheet history',
+      description: rbacDescription('TIMESHEETS:READ', 'RESOURCE'),
       security: bearerSecurity,
       responses: {
         '200': { description: 'Timesheet history returned' },
+        ...forbiddenRbacResponse,
       },
     },
     post: {
-      tags: ['Employee'],
-      summary: 'Submit weekly timesheet',
+      tags: ['Resource'],
+      summary: 'Submit weekly timesheet (BRD Screen 5.1)',
+      description: rbacDescription('TIMESHEETS:SUBMIT', 'RESOURCE'),
       security: bearerSecurity,
       requestBody: submitTimesheetBody,
       responses: {
         '200': { description: 'Timesheet submitted' },
         '400': { description: 'Validation error (hours cap, invalid week, etc.)' },
         '409': { description: 'Duplicate submission for week' },
+        ...forbiddenRbacResponse,
       },
     },
   },
   [openApiPath(EmployeeRoutes.TIMESHEET_BY_WEEK)]: {
     get: {
-      tags: ['Employee'],
-      summary: 'Get timesheet detail for a specific week',
+      tags: ['Resource'],
+      summary: 'Get own timesheet detail for a specific week',
+      description: rbacDescription('TIMESHEETS:READ', 'RESOURCE'),
       security: bearerSecurity,
       parameters: [weekStartParam],
       responses: {
         '200': { description: 'Week detail returned' },
         '404': { description: 'Timesheet not found' },
+        ...forbiddenRbacResponse,
       },
     },
   },

@@ -1,4 +1,4 @@
-import { EmployeeStatus } from '@prisma/client';
+import { ResourceStatus } from '@prisma/client';
 import { Request, Response } from 'express';
 import { AdminUserService } from '../../application/services/AdminUserService';
 import { AllocationService } from '../../application/services/AllocationService';
@@ -76,7 +76,7 @@ export class AdminController {
   listEmployees = async (req: Request, res: Response): Promise<void> => {
     const query = parseBody(employeeListQuerySchema, req.query);
     const result = await this.employeeService.listEmployees({
-      status: query.status as EmployeeStatus | undefined,
+      status: query.status as ResourceStatus | undefined,
       department: query.department,
     });
     res.status(HttpStatus.OK).json(result);

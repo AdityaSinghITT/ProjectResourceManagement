@@ -1,4 +1,5 @@
 import { SessionStore } from '../session/SessionStore';
+import { withRequestLoader } from '../ui/components/RequestLoader';
 import { ApiError, ApiErrorBody } from './ApiError';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -25,7 +26,16 @@ export class HttpClient {
     return this.request<T>('DELETE', path);
   }
 
-  private async request<T>(
+  private request<T>(
+    method: HttpMethod,
+    path: string,
+    body?: unknown,
+    query?: Record<string, string | number | undefined>,
+  ): Promise<T> {
+    return withRequestLoader(() => this.executeRequest<T>(method, path, body, query));
+  }
+
+  private async executeRequest<T>(
     method: HttpMethod,
     path: string,
     body?: unknown,
@@ -54,18 +64,43 @@ export class HttpClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new ApiError(
+        503,
+        'Service Unavailable',
+        'Unable to reach the API. Ensure npm run dev is running and retry.',
+      );
+    }
 
     if (response.status === 204) {
       return undefined as T;
     }
 
     const text = await response.text();
-    const payload = text.length > 0 ? (JSON.parse(text) as unknown) : null;
+    let payload: unknown = null;
+
+    if (text.length > 0) {
+      try {
+        payload = JSON.parse(text) as unknown;
+      } catch {
+        const preview = text.replace(/\s+/g, ' ').trim().slice(0, 120);
+        throw new ApiError(
+          response.status,
+          'Bad Gateway',
+          preview.length > 0
+            ? `API returned non-JSON (HTTP ${response.status}): ${preview}`
+            : `API returned a non-JSON response (HTTP ${response.status}).`,
+        );
+      }
+    }
 
     if (!response.ok) {
       if (payload && typeof payload === 'object' && payload !== null && 'message' in payload) {

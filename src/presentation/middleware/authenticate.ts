@@ -45,6 +45,7 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
       id: payload.sub,
       username: payload.username,
       role: payload.role,
+      permissions: payload.permissions,
       forcePasswordChange: payload.forcePasswordChange,
     };
 

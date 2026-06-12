@@ -13,24 +13,24 @@ import {
 import { formatDateOnly, todayDateOnly } from '../../../shared/utils/date.utils';
 
 const allocationInclude = {
-  employee: { include: { user: { select: { fullName: true } } } },
+  resourceProfile: { include: { user: { select: { fullName: true } } } },
   project: { select: { id: true, name: true, managerId: true } },
 } as const;
 
 function mapAllocationView(allocation: {
   id: number;
-  employeeId: number;
+  resourceProfileId: number;
   projectId: number;
   utilizationPercent: number;
   fromDate: Date;
   toDate: Date;
-  employee: { user: { fullName: string } };
+  resourceProfile: { user: { fullName: string } };
   project: { name: string };
 }): AllocationView {
   return {
     id: allocation.id,
-    employeeId: allocation.employeeId,
-    employeeName: allocation.employee.user.fullName,
+    resourceProfileId: allocation.resourceProfileId,
+    employeeName: allocation.resourceProfile.user.fullName,
     projectId: allocation.projectId,
     projectName: allocation.project.name,
     utilizationPercent: allocation.utilizationPercent,
@@ -57,7 +57,7 @@ export class PrismaAllocationRepository implements IAllocationRepository {
   async create(input: CreateAllocationInput): Promise<AllocationView> {
     const allocation = await prisma.allocation.create({
       data: {
-        employeeId: input.employeeId,
+        resourceProfileId: input.resourceProfileId,
         projectId: input.projectId,
         utilizationPercent: input.utilizationPercent,
         fromDate: input.fromDate,
@@ -96,11 +96,11 @@ export class PrismaAllocationRepository implements IAllocationRepository {
   }
 
   async listAdmin(filters: {
-    employeeId?: number;
+    resourceProfileId?: number;
     projectId?: number;
   }): Promise<AllocationListResult> {
     const where: Prisma.AllocationWhereInput = {
-      ...(filters.employeeId ? { employeeId: filters.employeeId } : {}),
+      ...(filters.resourceProfileId ? { resourceProfileId: filters.resourceProfileId } : {}),
       ...(filters.projectId ? { projectId: filters.projectId } : {}),
     };
 
@@ -119,15 +119,15 @@ export class PrismaAllocationRepository implements IAllocationRepository {
     };
   }
 
-  async listOverlappingForEmployee(
-    employeeId: number,
+  async listOverlappingForResourceProfile(
+    resourceProfileId: number,
     fromDate: Date,
     toDate: Date,
     excludeAllocationId?: number,
   ): Promise<OverlappingAllocationRecord[]> {
     const allocations = await prisma.allocation.findMany({
       where: {
-        employeeId,
+        resourceProfileId,
         fromDate: { lte: toDate },
         toDate: { gte: fromDate },
         ...(excludeAllocationId ? { id: { not: excludeAllocationId } } : {}),
@@ -138,10 +138,13 @@ export class PrismaAllocationRepository implements IAllocationRepository {
     return allocations.map(mapOverlappingRecord);
   }
 
-  async listActiveByEmployee(employeeId: number, asOfDate: Date): Promise<OverlappingAllocationRecord[]> {
+  async listActiveByResourceProfile(
+    resourceProfileId: number,
+    asOfDate: Date,
+  ): Promise<OverlappingAllocationRecord[]> {
     const allocations = await prisma.allocation.findMany({
       where: {
-        employeeId,
+        resourceProfileId,
         fromDate: { lte: asOfDate },
         toDate: { gte: asOfDate },
       },
@@ -151,15 +154,18 @@ export class PrismaAllocationRepository implements IAllocationRepository {
     return allocations.map(mapOverlappingRecord);
   }
 
-  async getCurrentUtilizationPercent(employeeId: number, asOfDate: Date): Promise<number> {
-    const activeAllocations = await this.listActiveByEmployee(employeeId, asOfDate);
+  async getCurrentUtilizationPercent(resourceProfileId: number, asOfDate: Date): Promise<number> {
+    const activeAllocations = await this.listActiveByResourceProfile(resourceProfileId, asOfDate);
     return activeAllocations.reduce((sum, allocation) => sum + allocation.utilizationPercent, 0);
   }
 
-  async listActiveViewsByEmployee(employeeId: number, asOfDate: Date): Promise<AllocationView[]> {
+  async listActiveViewsByResourceProfile(
+    resourceProfileId: number,
+    asOfDate: Date,
+  ): Promise<AllocationView[]> {
     const allocations = await prisma.allocation.findMany({
       where: {
-        employeeId,
+        resourceProfileId,
         fromDate: { lte: asOfDate },
         toDate: { gte: asOfDate },
       },
@@ -170,14 +176,14 @@ export class PrismaAllocationRepository implements IAllocationRepository {
     return allocations.map(mapAllocationView);
   }
 
-  async listOverlappingViewsForEmployee(
-    employeeId: number,
+  async listOverlappingViewsForResourceProfile(
+    resourceProfileId: number,
     fromDate: Date,
     toDate: Date,
   ): Promise<AllocationView[]> {
     const allocations = await prisma.allocation.findMany({
       where: {
-        employeeId,
+        resourceProfileId,
         fromDate: { lte: toDate },
         toDate: { gte: fromDate },
       },

@@ -5,7 +5,7 @@ import {
 } from '../types/allocation.types';
 
 export interface CreateAllocationInput {
-  employeeId: number;
+  resourceProfileId: number;
   projectId: number;
   utilizationPercent: number;
   fromDate: Date;
@@ -20,18 +20,27 @@ export interface IAllocationRepository {
   create(input: CreateAllocationInput): Promise<AllocationView>;
   findById(allocationId: number): Promise<AllocationRecord | null>;
   endAllocation(allocationId: number, endDate: Date): Promise<AllocationView>;
-  listAdmin(filters: { employeeId?: number; projectId?: number }): Promise<AllocationListResult>;
-  listOverlappingForEmployee(
-    employeeId: number,
+  listAdmin(filters: {
+    resourceProfileId?: number;
+    projectId?: number;
+  }): Promise<AllocationListResult>;
+  listOverlappingForResourceProfile(
+    resourceProfileId: number,
     fromDate: Date,
     toDate: Date,
     excludeAllocationId?: number,
   ): Promise<OverlappingAllocationRecord[]>;
-  listActiveByEmployee(employeeId: number, asOfDate: Date): Promise<OverlappingAllocationRecord[]>;
-  getCurrentUtilizationPercent(employeeId: number, asOfDate: Date): Promise<number>;
-  listActiveViewsByEmployee(employeeId: number, asOfDate: Date): Promise<AllocationView[]>;
-  listOverlappingViewsForEmployee(
-    employeeId: number,
+  listActiveByResourceProfile(
+    resourceProfileId: number,
+    asOfDate: Date,
+  ): Promise<OverlappingAllocationRecord[]>;
+  getCurrentUtilizationPercent(resourceProfileId: number, asOfDate: Date): Promise<number>;
+  listActiveViewsByResourceProfile(
+    resourceProfileId: number,
+    asOfDate: Date,
+  ): Promise<AllocationView[]>;
+  listOverlappingViewsForResourceProfile(
+    resourceProfileId: number,
     fromDate: Date,
     toDate: Date,
   ): Promise<AllocationView[]>;

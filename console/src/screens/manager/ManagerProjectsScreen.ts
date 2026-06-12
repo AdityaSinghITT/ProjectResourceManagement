@@ -4,7 +4,6 @@ import { printTable } from '../../ui/components/Table';
 import { formatApiDateForDisplay } from '../../ui/formatters/dateFormatter';
 import { formatHealthBadgeWithIcon } from '../../ui/formatters/healthBadge';
 import { printApiError } from '../../ui/handleApiError';
-import { AiStubScreen } from './AiStubScreen';
 
 export const ManagerProjectsScreen: Screen = {
   name: 'ManagerProjectsScreen',
@@ -88,9 +87,19 @@ export const ManagerProjectsScreen: Screen = {
         );
       }
 
-      const action = await context.prompt.ask('\n[A] Get AI Risk Summary (stub)     [B] Back\nChoice: ');
+      const action = await context.prompt.ask('\n[A] Get AI Risk Summary     [B] Back\nChoice: ');
       if (action.toUpperCase() === 'A') {
-        return { type: 'push', screen: AiStubScreen('AI Risk Summary') };
+        try {
+          console.log('\nGenerating AI summary (this may take a moment)...');
+          const aiResult = await context.manager.projectRiskSummary(project.id);
+          console.log(`\n${aiResult.disclaimer}`);
+          drawDivider();
+          console.log(`\n${aiResult.summary}\n`);
+        } catch (error) {
+          printApiError(error);
+        }
+        await context.prompt.pause();
+        return { type: 'stay' };
       }
     } catch (error) {
       printApiError(error);

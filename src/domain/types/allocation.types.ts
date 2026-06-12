@@ -1,6 +1,8 @@
+import { Department, Designation, ResourceStatus } from '@prisma/client';
+
 export interface AllocationView {
   id: number;
-  employeeId: number;
+  resourceProfileId: number;
   employeeName: string;
   projectId: number;
   projectName: string;
@@ -29,7 +31,7 @@ export interface DashboardEmployeeSummary {
   id: number;
   userId: number;
   fullName: string;
-  department: string;
+  department: Department | null;
   skillsSummary: string;
   utilizationPercent: number;
   availabilityPercent: number;
@@ -50,9 +52,9 @@ export interface ResourceDashboardResult {
 export interface EmployeeDashboardDetail {
   id: number;
   fullName: string;
-  department: string;
-  designation: string;
-  currentStatus: string;
+  department: Department | null;
+  designation: Designation | null;
+  currentStatus: ResourceStatus;
   utilizationPercent: number;
   profileSkills: string[];
   activeAllocations: AllocationView[];

@@ -1,4 +1,5 @@
-import { Role } from '@prisma/client';
+import { Department, Designation } from '@prisma/client';
+import { RoleName } from '../../shared/constants/roleNames';
 import { AdminUserListResult, CreateUserResult, EmployeeListItem } from '../types/admin.types';
 import { UserProfile } from '../types/user.types';
 
@@ -7,9 +8,9 @@ export interface CreateUserInput {
   email: string;
   fullName: string;
   passwordHash: string;
-  role: Role;
-  department?: string;
-  designation?: string;
+  role: RoleName;
+  department?: Department;
+  designation?: Designation;
 }
 
 export interface IAdminUserRepository {

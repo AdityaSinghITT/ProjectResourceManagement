@@ -4,17 +4,18 @@ Console-based PRM system REST backend (Learn & Code Final Project).
 
 ## Current status
 
-| Phase | Status |
-|-------|--------|
-| Phase 1 — Foundation | Complete |
-| Phase 2 — Authentication | Complete |
-| Phase 3 — Admin master data | Complete |
-| Phase 4 — Allocations & dashboard | Complete |
-| Phase 5 — Timesheets | Complete |
-| Phase 6 — Project health | Complete |
-| Phase 7 — Console client | Complete |
-| Phase 8 — AI integration | Planned |
-| Phase 9 — Polish & demo data | Planned |
+| Milestone / area | Status |
+|------------------|--------|
+| Foundation + Auth + Admin APIs | Complete |
+| Allocations + Manager dashboard | Complete |
+| Timesheets + Project health | Complete |
+| RBAC (roles/permissions on routes) | Complete |
+| API integration tests (`npm run test:integration`) | Complete |
+| Console client (`console/`) | Complete |
+| Background scheduler | Complete (`ENABLE_SCHEDULER=true`) |
+| Demo seed data | Complete (`npx prisma db seed`) |
+| Swagger docs | Complete (`/api-docs`) |
+| AI integration (Phase 8) | Complete (OLLAMA provider) |
 
 ## Prerequisites
 
@@ -47,6 +48,47 @@ npx prisma db seed
 ```bash
 npm run dev
 ```
+
+5. (Optional) Enable background scheduler in `.env`:
+
+```env
+ENABLE_SCHEDULER=true
+```
+
+6. Start console client (second terminal):
+
+```bash
+npm run console:dev
+```
+
+## Milestone 2 — Quick start (demo accounts)
+
+After `npx prisma db seed`, these accounts are ready (demo users skip forced password change):
+
+| Role | Username | Password | Notes |
+|------|----------|----------|-------|
+| Admin | `admin` | `Admin@1234` | Must change password on first login |
+| Manager | `ankit.shah` | `Manager@1234` | Owns **Alpha Portal** project |
+| Resource | `ravi.kumar` | `Resource@1234` | 50% on Alpha Portal; sample prior-week timesheet |
+| Resource | `priya.sharma` | `Resource@1234` | On bench; reports to Ankit |
+
+**Two terminals**
+
+| Terminal | Command |
+|----------|---------|
+| 1 — API | `npm run dev` |
+| 2 — Console | `npm run console:dev` |
+
+**Swagger:** [http://localhost:3000/api-docs](http://localhost:3000/api-docs) — login as each role, authorize with Bearer token.
+
+**API tests**
+
+```bash
+npm test                  # unit tests (53+)
+npm run test:integration  # HTTP + RBAC tests (needs DATABASE_URL)
+```
+
+**ID reminder:** Admin `/employees/{id}` and manager `employeeId` path params = **resource profile ID**, not user ID. Assign-manager uses **user IDs**.
 
 ## API documentation
 
@@ -241,7 +283,7 @@ Base path: `/api/manager` (MANAGER role)
 - Per project: `hours ≤ utilization% × maxWeeklyHours / 100` (default `maxWeeklyHours = 40`)
 - Total hours ≤ `maxWeeklyHours`
 - Activity tags from seeded catalog; `customText` required only for tag **Other**
-- Automatic `MISSED` marking is Phase 7 (background scheduler; Phase 5 reminder works without it)
+- Automatic `MISSED` marking runs via background scheduler when `ENABLE_SCHEDULER=true` (see below)
 
 ### Swagger end-to-end test flow
 
@@ -292,11 +334,6 @@ Expected hours per employee = `utilization% × maxWeeklyHours / 100` (default 40
 3. `GET /api/manager/projects/{id}` → inspect `health.riskFlags` messages
 4. Allocate employee 50%, have them log 8 hrs last week → **AT_RISK** (`LOW_HOURS` flag)
 
-### Not in this phase
-
-- Background scheduler and automatic `MISSED` marking (Phase 7)
-- LLM risk summary (Phase 8)
-
 ### Tests
 
 ```bash
@@ -340,7 +377,106 @@ Set `API_BASE_URL=http://localhost:3000` in project `.env` or `console/.env` if 
 | Manager | Dashboard, allocate (validate + direct + end), projects + health flags, team timesheets |
 | Employee | Submit timesheet (multi-project single POST), history, allocations, reminder banner |
 
-AI menus show a stub until Phase 8 LLM endpoints exist. Structured `riskFlags` work without AI.
+Manager AI menus call live endpoints when LLM is configured (see Phase 8). Structured `riskFlags` work without AI.
+
+## Phase 8 — AI integration (OLLAMA)
+
+Private Ollama-compatible hosts are supported via `POST {baseUrl}/api/generate` with `{ model, prompt, stream: false }`.
+
+### `.env` setup (recommended for local / private host)
+
+Add to project `.env` (see [`.env.example`](.env.example)):
+
+```env
+LLM_BASE_URL="http://your-llm-host:11434"
+LLM_API_KEY="your-bearer-token-if-required"
+LLM_MODEL="gemma3:12b-it-q8_0"
+LLM_PROVIDER=OLLAMA
+```
+
+Env keys are defined in [`src/shared/constants/envKeys.ts`](src/shared/constants/envKeys.ts). **`.env` takes precedence** over Admin system config for LLM URL, model, and API key.
+
+Restart `npm run dev` after changing `.env`.
+
+### Admin setup (optional override)
+
+1. Log in as **admin** → **System Configuration**
+2. Set **LLM Provider** to `OLLAMA`
+3. Set **LLM Base URL** (e.g. `http://your-host:11434`) — no trailing path
+4. Set **LLM Model** (e.g. `gemma3:12b-it-q8_0`)
+5. Optionally set **LLM API Key** if the host requires a bearer token
+
+Or patch via API: `PATCH /api/admin/system-config` with `llmProvider`, `llmBaseUrl`, `llmModel`, `llmApiKey`.
+
+### Manager features
+
+| Console menu | API |
+|--------------|-----|
+| AI Assistant → Skill Match | `POST /api/manager/ai/skill-match` |
+| AI Assistant → Team Builder | `POST /api/manager/ai/team-builder` |
+| Allocate Resource → AI match | `POST /api/manager/allocations/ai-match` (alias) |
+| My Projects → AI Risk Summary | `POST /api/manager/projects/{id}/ai-risk-summary` |
+
+Skill match pre-filters team members by utilization/availability, then asks the LLM to rank candidates. Risk summary uses structured `ProjectHealthService` output as LLM context.
+
+### Tests
+
+```bash
+npm test -- AIService OllamaGenerateProvider
+```
+
+## Background scheduler
+
+The scheduler is a **background loop inside the API process** (not a separate OS service). It is **off by default**; set `ENABLE_SCHEDULER=true` in `.env` and restart `npm run dev`.
+
+### When it runs
+
+| Event | What happens |
+|-------|----------------|
+| Server start | If `ENABLE_SCHEDULER=true`, `startScheduler()` runs in [`src/index.ts`](src/index.ts) after `app.listen` |
+| Immediately | First `SchedulerRunner.runOnce()` executes |
+| Every N hours | `setInterval` repeats; **N** = `system_config.scheduler_interval_hours` (default **4**, editable via Admin system config API) |
+
+### What each run does
+
+1. **Recompute `resource_status`** (`BENCH` / `ALLOCATED`) for every active resource profile using current allocations ([`EmployeeStatusService`](src/application/services/EmployeeStatusService.ts)).
+2. **Flag missed timesheets** ([`MissedTimesheetService`](src/application/services/MissedTimesheetService.ts)): for the last 8 **completed** weeks, if a resource had allocations but no timesheet row, insert `status: MISSED` with zero-hour entries per project.
+
+### Key files
+
+| File | Role |
+|------|------|
+| [`src/infrastructure/scheduler/startScheduler.ts`](src/infrastructure/scheduler/startScheduler.ts) | Wires repositories + services, starts runner |
+| [`src/infrastructure/scheduler/SchedulerRunner.ts`](src/infrastructure/scheduler/SchedulerRunner.ts) | Interval + `runOnce` orchestration |
+| [`src/application/services/MissedTimesheetService.ts`](src/application/services/MissedTimesheetService.ts) | MISSED detection logic |
+| [`src/shared/constants/schedulerConfig.ts`](src/shared/constants/schedulerConfig.ts) | Lookback weeks (8) |
+
+### Logs
+
+Scheduler emits JSON logs via `appLogger` (`Scheduler run started`, `Missed timesheet created`, etc.). Set `LOG_LEVEL=info` in `.env` to see them without debug noise.
+
+## Milestone 2 — E2E verification (Phase 7)
+
+### Automated API E2E (demo seed required)
+
+```bash
+npx prisma db seed   # if not already done
+npm run test:e2e
+```
+
+Runs [`demo-seed.e2e.integration.test.ts`](src/presentation/__tests__/integration/demo-seed.e2e.integration.test.ts) against **ankit.shah**, **ravi.kumar**, **priya.sharma**, and **admin** demo data: admin master data, manager dashboard/projects/timesheets, resource allocations/history, RBAC denials.
+
+### Manual console + Swagger checklist
+
+See [docs/MILESTONE2_E2E_CHECKLIST.md](docs/MILESTONE2_E2E_CHECKLIST.md) for step-by-step Admin / Manager / Resource console flows and scheduler verification.
+
+### Full test suite
+
+```bash
+npm test                 # unit (57 tests)
+npm run test:integration # RBAC matrix (18 tests)
+npm run test:e2e         # demo E2E (~15 tests)
+```
 
 ### Console timesheet notes (from API testing)
 
@@ -367,7 +503,9 @@ If Neon is waking up, retry after a few seconds or wait for the health endpoint 
 | `npm run console` | Start console client once |
 | `npm test` | Run Jest unit tests |
 | `npm run prisma:migrate` | Run Prisma migrations |
-| `npm run prisma:seed` | Seed admin, activity tags, system config |
+| `npm run prisma:seed` | Seed admin, roles/permissions, demo users, Alpha Portal, sample data |
+| `npm run test:integration` | Supertest API + RBAC integration tests |
+| `npm run test:e2e` | Demo-seed E2E API matrix (Milestone 2) |
 | `npm run prisma:studio` | Open Prisma Studio |
 
 ## Project structure
@@ -377,7 +515,7 @@ console/src/        Thin REST client (screens, api adapters, navigation)
 src/
   application/      Services, validators (business logic)
   domain/           Types, repository interfaces
-  infrastructure/   Prisma repos, JWT helpers
+  infrastructure/   Prisma repos, JWT, scheduler runner
   presentation/     Routes, controllers, middleware
   shared/constants/ Messages, routes, HTTP codes (no magic strings)
   shared/logger/    Structured JSON application logging
@@ -385,7 +523,7 @@ src/
   swagger/          OpenAPI spec
 prisma/
   schema.prisma     Full database schema
-  seed.ts           Bootstrap data
+  seed.ts           Bootstrap + demo manager/resources/project
 ```
 
 ## Design notes (Phase 2)
