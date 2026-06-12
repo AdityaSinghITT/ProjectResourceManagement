@@ -1,6 +1,7 @@
 import { Prisma, TimesheetStatus } from '@prisma/client';
 import { getWeekEnd } from '../../../application/utils/week.utils';
 import {
+  CreateMissedTimesheetInput,
   CreateTimesheetInput,
   ITimesheetRepository,
 } from '../../../domain/interfaces/ITimesheetRepository';
@@ -30,9 +31,9 @@ const timesheetInclude = {
   },
 } as const;
 
-const timesheetWithEmployeeInclude = {
+const timesheetWithResourceProfileInclude = {
   ...timesheetInclude,
-  employee: {
+  resourceProfile: {
     include: {
       user: { select: { fullName: true } },
     },
@@ -43,8 +44,8 @@ type TimesheetWithEntries = Prisma.TimesheetGetPayload<{
   include: typeof timesheetInclude;
 }>;
 
-type TimesheetWithEmployee = Prisma.TimesheetGetPayload<{
-  include: typeof timesheetWithEmployeeInclude;
+type TimesheetWithResourceProfile = Prisma.TimesheetGetPayload<{
+  include: typeof timesheetWithResourceProfileInclude;
 }>;
 
 function decimalToNumber(value: Prisma.Decimal): number {
@@ -99,14 +100,14 @@ function buildActivityTagLabel(tagName: string, customText: string | null): stri
 }
 
 export class PrismaTimesheetRepository implements ITimesheetRepository {
-  async findByEmployeeAndWeek(
-    employeeId: number,
+  async findByResourceProfileAndWeek(
+    resourceProfileId: number,
     weekStart: Date,
   ): Promise<TimesheetWeekView | null> {
     const timesheet = await prisma.timesheet.findUnique({
       where: {
-        employeeId_weekStart: {
-          employeeId,
+        resourceProfileId_weekStart: {
+          resourceProfileId,
           weekStart,
         },
       },
@@ -119,7 +120,7 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
   async createWithEntries(input: CreateTimesheetInput): Promise<TimesheetWeekView> {
     const timesheet = await prisma.timesheet.create({
       data: {
-        employeeId: input.employeeId,
+        resourceProfileId: input.resourceProfileId,
         weekStart: input.weekStart,
         status: input.status,
         entries: {
@@ -141,9 +142,28 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
     return mapTimesheetWeekView(timesheet);
   }
 
-  async listHistoryByEmployee(employeeId: number): Promise<TimesheetHistoryResult> {
+  async createMissedTimesheet(input: CreateMissedTimesheetInput): Promise<TimesheetWeekView> {
+    const timesheet = await prisma.timesheet.create({
+      data: {
+        resourceProfileId: input.resourceProfileId,
+        weekStart: input.weekStart,
+        status: TimesheetStatus.MISSED,
+        entries: {
+          create: input.projectIds.map((projectId) => ({
+            projectId,
+            hours: 0,
+          })),
+        },
+      },
+      include: timesheetInclude,
+    });
+
+    return mapTimesheetWeekView(timesheet);
+  }
+
+  async listHistoryByResourceProfile(resourceProfileId: number): Promise<TimesheetHistoryResult> {
     const timesheets = await prisma.timesheet.findMany({
-      where: { employeeId },
+      where: { resourceProfileId },
       orderBy: { weekStart: 'desc' },
       include: {
         entries: { select: { hours: true } },
@@ -168,13 +188,13 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
   }
 
   async listRecentActivityTags(
-    employeeId: number,
+    resourceProfileId: number,
     sinceWeekStart: Date,
     limit: number,
   ): Promise<RecentActivityTagRecord[]> {
     const timesheets = await prisma.timesheet.findMany({
       where: {
-        employeeId,
+        resourceProfileId,
         weekStart: { gte: sinceWeekStart },
         status: TimesheetStatus.SUBMITTED,
       },
@@ -203,11 +223,11 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
   }
 
   async listTeamEntriesForWeek(
-    employeeIds: number[],
+    resourceProfileIds: number[],
     weekStart: Date,
   ): Promise<
     Array<{
-      employeeId: number;
+      resourceProfileId: number;
       employeeName: string;
       projectId: number;
       projectName: string;
@@ -215,22 +235,22 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
       timesheetStatus: TimesheetStatus | null;
     }>
   > {
-    if (employeeIds.length === 0) {
+    if (resourceProfileIds.length === 0) {
       return [];
     }
 
     const timesheets = await prisma.timesheet.findMany({
       where: {
-        employeeId: { in: employeeIds },
+        resourceProfileId: { in: resourceProfileIds },
         weekStart,
       },
-      include: timesheetWithEmployeeInclude,
+      include: timesheetWithResourceProfileInclude,
     });
 
-    return timesheets.flatMap((timesheet: TimesheetWithEmployee) =>
+    return timesheets.flatMap((timesheet: TimesheetWithResourceProfile) =>
       timesheet.entries.map((entry) => ({
-        employeeId: timesheet.employeeId,
-        employeeName: timesheet.employee.user.fullName,
+        resourceProfileId: timesheet.resourceProfileId,
+        employeeName: timesheet.resourceProfile.user.fullName,
         projectId: entry.projectId,
         projectName: entry.project.name,
         hours: decimalToNumber(entry.hours),
@@ -239,10 +259,10 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
     );
   }
 
-  async listProjectHoursByEmployeeForWeek(
+  async listProjectHoursByResourceProfileForWeek(
     projectId: number,
     weekStart: Date,
-  ): Promise<Array<{ employeeId: number; employeeName: string; hours: number }>> {
+  ): Promise<Array<{ resourceProfileId: number; employeeName: string; hours: number }>> {
     const entries = await prisma.timesheetEntry.findMany({
       where: {
         projectId,
@@ -251,7 +271,7 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
       include: {
         timesheet: {
           include: {
-            employee: {
+            resourceProfile: {
               include: {
                 user: { select: { fullName: true } },
               },
@@ -261,10 +281,13 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
       },
     });
 
-    const hoursByEmployee = new Map<number, { employeeName: string; hours: number }>();
+    const hoursByResourceProfile = new Map<
+      number,
+      { employeeName: string; hours: number }
+    >();
 
     for (const entry of entries) {
-      const existing = hoursByEmployee.get(entry.timesheet.employeeId);
+      const existing = hoursByResourceProfile.get(entry.timesheet.resourceProfileId);
       const entryHours = decimalToNumber(entry.hours);
 
       if (existing) {
@@ -272,14 +295,14 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
         continue;
       }
 
-      hoursByEmployee.set(entry.timesheet.employeeId, {
-        employeeName: entry.timesheet.employee.user.fullName,
+      hoursByResourceProfile.set(entry.timesheet.resourceProfileId, {
+        employeeName: entry.timesheet.resourceProfile.user.fullName,
         hours: entryHours,
       });
     }
 
-    return Array.from(hoursByEmployee.entries()).map(([employeeId, value]) => ({
-      employeeId,
+    return Array.from(hoursByResourceProfile.entries()).map(([resourceProfileId, value]) => ({
+      resourceProfileId,
       employeeName: value.employeeName,
       hours: value.hours,
     }));

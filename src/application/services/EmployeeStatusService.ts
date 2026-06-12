@@ -1,27 +1,27 @@
-import { EmployeeStatus } from '@prisma/client';
+import { ResourceStatus } from '@prisma/client';
 import { IAllocationRepository } from '../../domain/interfaces/IAllocationRepository';
-import { IEmployeeRepository } from '../../domain/interfaces/IEmployeeRepository';
+import { IResourceProfileRepository } from '../../domain/interfaces/IResourceProfileRepository';
 import { appLogger } from '../../shared/logger/appLogger';
 
 export class EmployeeStatusService {
   constructor(
-    private readonly employeeRepository: IEmployeeRepository,
+    private readonly resourceProfileRepository: IResourceProfileRepository,
     private readonly allocationRepository: IAllocationRepository,
   ) {}
 
-  async recomputeStatus(employeeId: number, asOfDate: Date): Promise<EmployeeStatus> {
-    const activeAllocations = await this.allocationRepository.listActiveByEmployee(
-      employeeId,
+  async recomputeStatus(resourceProfileId: number, asOfDate: Date): Promise<ResourceStatus> {
+    const activeAllocations = await this.allocationRepository.listActiveByResourceProfile(
+      resourceProfileId,
       asOfDate,
     );
 
     const status =
-      activeAllocations.length > 0 ? EmployeeStatus.ALLOCATED : EmployeeStatus.BENCH;
+      activeAllocations.length > 0 ? ResourceStatus.ALLOCATED : ResourceStatus.BENCH;
 
-    await this.employeeRepository.updateStatus(employeeId, status);
+    await this.resourceProfileRepository.updateResourceStatus(resourceProfileId, status);
 
-    appLogger.info('Employee status recomputed', {
-      employeeId,
+    appLogger.info('Resource status recomputed', {
+      resourceProfileId,
       status,
       activeAllocationCount: activeAllocations.length,
     });

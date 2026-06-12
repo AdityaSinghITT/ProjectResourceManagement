@@ -5,7 +5,7 @@ import {
   deriveDashboardStatus,
   isUtilizationValid,
   sumOverlappingUtilization,
-} from './allocationOverlap.util';
+} from '../../utils/allocationOverlap.util';
 
 describe('allocationOverlap.util', () => {
   const day = (value: string) => new Date(`${value}T00:00:00.000Z`);

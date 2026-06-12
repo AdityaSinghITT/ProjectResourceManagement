@@ -1,444 +1,233 @@
-import { EmployeeStatus, ProficiencyLevel, Role, SkillCategory } from '@prisma/client';
-
+import { Department, Designation, ProficiencyLevel, ResourceStatus, SkillCategory } from '@prisma/client';
 import { IAdminUserRepository } from '../../domain/interfaces/IAdminUserRepository';
-
-import { IEmployeeRepository } from '../../domain/interfaces/IEmployeeRepository';
-
-import { IProjectRepository } from '../../domain/interfaces/IProjectRepository';
-
-import { IUserRepository } from '../../domain/interfaces/IUserRepository';
-
-import { EmployeeRecord } from '../../domain/interfaces/IEmployeeRepository';
-
 import {
-
+  IResourceProfileRepository,
+  ResourceProfileRecord,
+} from '../../domain/interfaces/IResourceProfileRepository';
+import { IProjectRepository } from '../../domain/interfaces/IProjectRepository';
+import { IUserRepository } from '../../domain/interfaces/IUserRepository';
+import {
   ActiveAllocationPreview,
-
   EmployeeListResult,
-
   EmployeeSkillView,
-
 } from '../../domain/types/admin.types';
-
 import { validateActiveReportingManager } from '../validators/activeManager.validator';
 import { AppError } from '../../shared/errors/AppError';
-
 import { AdminMessages } from '../../shared/constants/adminMessages';
-
 import { ErrorTitles, HttpStatus } from '../../shared/constants/httpStatusCodes';
-
+import { RoleNames } from '../../shared/constants/roleNames';
 import { todayDateOnly } from '../../shared/utils/date.utils';
-
 import { applyManagerDeactivationEffects, ManagerDeactivationEffects } from './managerDeactivation.effects';
 
-
-
 export interface UpdateEmployeeRequest {
-
-  department?: string;
-
-  designation?: string;
-
+  department?: Department;
+  designation?: Designation;
 }
-
-
 
 export interface AddSkillRequest {
-
   skillName: string;
-
   category: SkillCategory;
-
   proficiency: ProficiencyLevel;
-
 }
-
-
 
 export interface AssignManagerRequest {
-
   employeeUserId: number;
-
   managerUserId: number;
-
 }
 
-
-
 export class EmployeeService {
-
   constructor(
-
-    private readonly employeeRepository: IEmployeeRepository,
-
+    private readonly resourceProfileRepository: IResourceProfileRepository,
     private readonly userRepository: IUserRepository,
-
     private readonly adminUserRepository: IAdminUserRepository,
-
     private readonly projectRepository: IProjectRepository,
-
   ) {}
 
-
-
   async listEmployees(filters: {
-
-    status?: EmployeeStatus;
-
-    department?: string;
-
+    status?: ResourceStatus;
+    department?: Department;
   }): Promise<EmployeeListResult> {
-
-    return this.employeeRepository.list(filters);
-
+    return this.resourceProfileRepository.list({
+      resourceStatus: filters.status,
+      department: filters.department,
+    });
   }
 
-
-
   async assignManager(
-
     input: AssignManagerRequest,
-
-  ): Promise<{ message: string; employee: EmployeeRecord }> {
-
-    const employee = await this.requireEmployeeByUserId(input.employeeUserId);
-
-    this.ensureEmployeeIsActive(employee, AdminMessages.CANNOT_ASSIGN_MANAGER_INACTIVE_EMPLOYEE);
-
-
+  ): Promise<{ message: string; employee: ResourceProfileRecord }> {
+    const profile = await this.requireResourceProfileByUserId(input.employeeUserId);
+    this.ensureProfileIsActive(profile, AdminMessages.CANNOT_ASSIGN_MANAGER_INACTIVE_EMPLOYEE);
 
     await validateActiveReportingManager(
       input.managerUserId,
       this.userRepository,
-      this.employeeRepository,
+      this.resourceProfileRepository,
     );
 
-
-
-    const updated = await this.employeeRepository.assignManager({
-
-      employeeUserId: input.employeeUserId,
-
+    const updated = await this.resourceProfileRepository.assignManager({
+      resourceUserId: input.employeeUserId,
       managerUserId: input.managerUserId,
-
     });
-
-
 
     return { message: AdminMessages.MANAGER_ASSIGNED, employee: updated };
-
   }
-
-
 
   async updateEmployee(
-
-    employeeId: number,
-
+    resourceProfileId: number,
     input: UpdateEmployeeRequest,
+  ): Promise<{ message: string; employee: ResourceProfileRecord }> {
+    const profile = await this.requireResourceProfile(resourceProfileId);
+    this.ensureProfileIsActive(profile, AdminMessages.CANNOT_MODIFY_INACTIVE_EMPLOYEE);
 
-  ): Promise<{ message: string; employee: EmployeeRecord }> {
-
-    const employee = await this.requireEmployee(employeeId);
-
-    this.ensureEmployeeIsActive(employee, AdminMessages.CANNOT_MODIFY_INACTIVE_EMPLOYEE);
-
-
-
-    const updated = await this.employeeRepository.update({
-
-      employeeId,
-
+    const updated = await this.resourceProfileRepository.update({
+      resourceProfileId,
       department: input.department,
-
       designation: input.designation,
-
     });
 
-
-
     return { message: AdminMessages.EMPLOYEE_UPDATED, employee: updated };
-
   }
 
-
-
-  async getDeactivationPreview(employeeId: number): Promise<{
-
-    employee: EmployeeRecord;
-
+  async getDeactivationPreview(resourceProfileId: number): Promise<{
+    employee: ResourceProfileRecord;
     activeAllocations: ActiveAllocationPreview[];
-
   }> {
+    const profile = await this.requireResourceProfile(resourceProfileId);
+    const activeAllocations =
+      await this.resourceProfileRepository.getActiveAllocations(resourceProfileId);
 
-    const employee = await this.requireEmployee(employeeId);
-
-    const activeAllocations = await this.employeeRepository.getActiveAllocations(employeeId);
-
-
-
-    return { employee, activeAllocations };
-
+    return { employee: profile, activeAllocations };
   }
 
-
-
-  async deactivateEmployee(employeeId: number): Promise<{
-
+  async deactivateEmployee(resourceProfileId: number): Promise<{
     message: string;
-
-    employee: EmployeeRecord;
-
+    employee: ResourceProfileRecord;
     endedAllocations: number;
-
     managerEffects?: ManagerDeactivationEffects;
-
   }> {
+    const profile = await this.requireResourceProfile(resourceProfileId);
 
-    const employee = await this.requireEmployee(employeeId);
-
-
-
-    if (!employee.isActive) {
-
+    if (!profile.isActive) {
       throw new AppError(
-
         HttpStatus.CONFLICT,
-
         AdminMessages.EMPLOYEE_ALREADY_INACTIVE,
-
         ErrorTitles.CONFLICT,
-
       );
-
     }
 
-
-
-    const user = await this.userRepository.findById(employee.userId);
-
-    const activeAllocations = await this.employeeRepository.getActiveAllocations(employeeId);
-
+    const user = await this.userRepository.findById(profile.userId);
+    const activeAllocations =
+      await this.resourceProfileRepository.getActiveAllocations(resourceProfileId);
     const endDate = todayDateOnly();
-
-
 
     let managerEffects: ManagerDeactivationEffects | undefined;
 
-
-
-    if (user?.role === Role.MANAGER) {
-
+    if (user?.role === RoleNames.MANAGER) {
       managerEffects = await applyManagerDeactivationEffects(
-
-        this.employeeRepository,
-
+        this.resourceProfileRepository,
         this.projectRepository,
-
-        employee.userId,
-
+        profile.userId,
       );
-
     }
 
+    await this.resourceProfileRepository.endActiveAllocations(resourceProfileId, endDate);
+    await this.adminUserRepository.setActiveStatus(profile.userId, false);
 
-
-    await this.employeeRepository.endActiveAllocations(employeeId, endDate);
-
-    await this.adminUserRepository.setActiveStatus(employee.userId, false);
-
-    const deactivated = await this.employeeRepository.deactivate(employeeId);
-
-
+    const deactivated = await this.requireResourceProfile(resourceProfileId);
 
     return {
-
       message: AdminMessages.EMPLOYEE_DEACTIVATED,
-
       employee: deactivated,
-
       endedAllocations: activeAllocations.length,
-
       ...(managerEffects ? { managerEffects } : {}),
-
     };
-
   }
 
-
-
-  async listSkills(employeeId: number): Promise<EmployeeSkillView[]> {
-
-    await this.requireEmployee(employeeId);
-
-    return this.employeeRepository.listSkills(employeeId);
-
+  async listSkills(resourceProfileId: number): Promise<EmployeeSkillView[]> {
+    const profile = await this.requireResourceProfile(resourceProfileId);
+    return this.resourceProfileRepository.listSkills(profile.userId);
   }
 
+  async addSkill(
+    resourceProfileId: number,
+    input: AddSkillRequest,
+  ): Promise<{ message: string; skill: EmployeeSkillView }> {
+    const profile = await this.requireResourceProfile(resourceProfileId);
+    this.ensureProfileIsActive(profile, AdminMessages.CANNOT_MODIFY_SKILLS_INACTIVE_EMPLOYEE);
 
-
-  async addSkill(employeeId: number, input: AddSkillRequest): Promise<{ message: string; skill: EmployeeSkillView }> {
-
-    const employee = await this.requireEmployee(employeeId);
-
-    this.ensureEmployeeIsActive(employee, AdminMessages.CANNOT_MODIFY_SKILLS_INACTIVE_EMPLOYEE);
-
-
-
-    const skill = await this.employeeRepository.addSkill({
-
-      employeeId,
-
+    const skill = await this.resourceProfileRepository.addSkill({
+      userId: profile.userId,
       skillName: input.skillName,
-
       category: input.category,
-
       proficiency: input.proficiency,
-
     });
 
-
-
     return { message: AdminMessages.SKILL_ADDED, skill };
-
   }
-
-
 
   async updateSkillProficiency(
-
-    employeeId: number,
-
-    employeeSkillId: number,
-
+    resourceProfileId: number,
+    userSkillId: number,
     proficiency: ProficiencyLevel,
-
   ): Promise<{ message: string; skill: EmployeeSkillView }> {
+    const profile = await this.requireResourceProfile(resourceProfileId);
+    this.ensureProfileIsActive(profile, AdminMessages.CANNOT_MODIFY_SKILLS_INACTIVE_EMPLOYEE);
+    await this.requireUserSkill(profile.userId, userSkillId);
 
-    const employee = await this.requireEmployee(employeeId);
-
-    this.ensureEmployeeIsActive(employee, AdminMessages.CANNOT_MODIFY_SKILLS_INACTIVE_EMPLOYEE);
-
-    await this.requireEmployeeSkill(employeeId, employeeSkillId);
-
-
-
-    const skill = await this.employeeRepository.updateSkill({ employeeSkillId, proficiency });
-
+    const skill = await this.resourceProfileRepository.updateSkill({ userSkillId, proficiency });
     return { message: AdminMessages.SKILL_UPDATED, skill };
-
   }
 
+  async removeSkill(resourceProfileId: number, userSkillId: number): Promise<{ message: string }> {
+    const profile = await this.requireResourceProfile(resourceProfileId);
+    this.ensureProfileIsActive(profile, AdminMessages.CANNOT_MODIFY_SKILLS_INACTIVE_EMPLOYEE);
+    await this.requireUserSkill(profile.userId, userSkillId);
 
-
-  async removeSkill(employeeId: number, employeeSkillId: number): Promise<{ message: string }> {
-
-    const employee = await this.requireEmployee(employeeId);
-
-    this.ensureEmployeeIsActive(employee, AdminMessages.CANNOT_MODIFY_SKILLS_INACTIVE_EMPLOYEE);
-
-    await this.requireEmployeeSkill(employeeId, employeeSkillId);
-
-
-
-    await this.employeeRepository.removeSkill(employeeSkillId);
-
+    await this.resourceProfileRepository.removeSkill(userSkillId);
     return { message: AdminMessages.SKILL_REMOVED };
-
   }
 
-
-
-  private ensureEmployeeIsActive(employee: EmployeeRecord, message: string): void {
-
-    if (!employee.isActive) {
-
+  private ensureProfileIsActive(profile: ResourceProfileRecord, message: string): void {
+    if (!profile.isActive) {
       throw new AppError(HttpStatus.CONFLICT, message, ErrorTitles.CONFLICT);
-
     }
-
   }
 
+  private async requireResourceProfile(resourceProfileId: number): Promise<ResourceProfileRecord> {
+    const profile = await this.resourceProfileRepository.findById(resourceProfileId);
 
-
-  private async requireEmployee(employeeId: number): Promise<EmployeeRecord> {
-
-    const employee = await this.employeeRepository.findById(employeeId);
-
-
-
-    if (!employee) {
-
+    if (!profile) {
       throw new AppError(HttpStatus.NOT_FOUND, AdminMessages.EMPLOYEE_NOT_FOUND, ErrorTitles.NOT_FOUND);
-
     }
 
-
-
-    return employee;
-
+    return profile;
   }
 
+  private async requireResourceProfileByUserId(userId: number): Promise<ResourceProfileRecord> {
+    const profile = await this.resourceProfileRepository.findByUserId(userId);
 
-
-  private async requireEmployeeByUserId(userId: number): Promise<EmployeeRecord> {
-
-    const employee = await this.employeeRepository.findByUserId(userId);
-
-
-
-    if (!employee) {
-
+    if (!profile) {
       throw new AppError(HttpStatus.NOT_FOUND, AdminMessages.EMPLOYEE_NOT_FOUND, ErrorTitles.NOT_FOUND);
-
     }
 
-
-
-    return employee;
-
+    return profile;
   }
 
-
-
-  private async requireEmployeeSkill(
-
-    employeeId: number,
-
-    employeeSkillId: number,
-
-  ): Promise<EmployeeSkillView> {
-
-    const skill = await this.employeeRepository.findEmployeeSkill(employeeSkillId);
-
-
+  private async requireUserSkill(userId: number, userSkillId: number): Promise<EmployeeSkillView> {
+    const skill = await this.resourceProfileRepository.findUserSkill(userSkillId);
 
     if (!skill) {
-
       throw new AppError(HttpStatus.NOT_FOUND, AdminMessages.SKILL_NOT_FOUND, ErrorTitles.NOT_FOUND);
-
     }
 
+    const userSkills = await this.resourceProfileRepository.listSkills(userId);
+    const belongsToUser = userSkills.some((item) => item.id === userSkillId);
 
-
-    const employeeSkills = await this.employeeRepository.listSkills(employeeId);
-
-    const belongsToEmployee = employeeSkills.some((item) => item.id === employeeSkillId);
-
-
-
-    if (!belongsToEmployee) {
-
+    if (!belongsToUser) {
       throw new AppError(HttpStatus.NOT_FOUND, AdminMessages.SKILL_NOT_FOUND, ErrorTitles.NOT_FOUND);
-
     }
-
-
 
     return skill;
-
   }
-
 }
-
-

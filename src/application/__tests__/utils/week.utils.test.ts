@@ -1,4 +1,4 @@
-import { todayDateOnly } from '../../shared/utils/date.utils';
+import { todayDateOnly } from '../../../shared/utils/date.utils';
 import {
   addDays,
   formatWeekRange,
@@ -8,7 +8,7 @@ import {
   isFutureWeek,
   isWeekStartMonday,
   parseWeekStart,
-} from './week.utils';
+} from '../../utils/week.utils';
 
 describe('week.utils', () => {
   const day = (value: string) => new Date(`${value}T00:00:00.000Z`);

@@ -14,8 +14,8 @@ import { ProjectHealthRules } from '../../shared/constants/projectHealthRules';
 import { formatDateOnly, parseIsoDate, todayDateOnly } from '../../shared/utils/date.utils';
 import { addDays, getWeekEnd, getWeekStart } from '../utils/week.utils';
 
-interface EmployeeWeekExpectation {
-  employeeId: number;
+interface ResourceWeekExpectation {
+  resourceProfileId: number;
   employeeName: string;
   utilizationPercent: number;
   expectedHours: number;
@@ -49,7 +49,7 @@ export class ProjectHealthService {
         priorWeekStart,
         priorWeekEnd,
       ),
-      this.timesheetRepository.listProjectHoursByEmployeeForWeek(projectId, priorWeekStart),
+      this.timesheetRepository.listProjectHoursByResourceProfileForWeek(projectId, priorWeekStart),
     ]);
 
     return this.buildEvaluation({
@@ -66,11 +66,11 @@ export class ProjectHealthService {
   buildEvaluation(input: {
     milestones: MilestoneView[];
     allocations: Array<{
-      employeeId: number;
+      resourceProfileId: number;
       employeeName: string;
       utilizationPercent: number;
     }>;
-    loggedHours: Array<{ employeeId: number; employeeName: string; hours: number }>;
+    loggedHours: Array<{ resourceProfileId: number; employeeName: string; hours: number }>;
     maxWeeklyHours: number;
     priorWeekStart: Date;
     priorWeekEnd: Date;
@@ -136,30 +136,32 @@ export class ProjectHealthService {
 
   private evaluateHourFlags(
     allocations: Array<{
-      employeeId: number;
+      resourceProfileId: number;
       employeeName: string;
       utilizationPercent: number;
     }>,
-    loggedHours: Array<{ employeeId: number; employeeName: string; hours: number }>,
+    loggedHours: Array<{ resourceProfileId: number; employeeName: string; hours: number }>,
     maxWeeklyHours: number,
   ): ProjectRiskFlag[] {
-    const expectations = this.buildEmployeeExpectations(allocations, maxWeeklyHours);
+    const expectations = this.buildResourceExpectations(allocations, maxWeeklyHours);
     if (expectations.length === 0) {
       return [];
     }
 
-    const loggedByEmployee = new Map(loggedHours.map((entry) => [entry.employeeId, entry.hours]));
+    const loggedByResource = new Map(
+      loggedHours.map((entry) => [entry.resourceProfileId, entry.hours]),
+    );
     const flags: ProjectRiskFlag[] = [];
 
     for (const expectation of expectations) {
-      const logged = loggedByEmployee.get(expectation.employeeId) ?? 0;
+      const logged = loggedByResource.get(expectation.resourceProfileId) ?? 0;
       const percentOfExpected =
         expectation.expectedHours > 0 ? (logged / expectation.expectedHours) * 100 : 100;
 
       if (percentOfExpected < ProjectHealthRules.LOW_HOURS_THRESHOLD_PERCENT) {
         flags.push({
           type: 'LOW_HOURS',
-          employeeId: expectation.employeeId,
+          employeeId: expectation.resourceProfileId,
           message: ProjectHealthMessages.LOW_HOURS(
             expectation.employeeName,
             logged,
@@ -172,7 +174,7 @@ export class ProjectHealthService {
       if (percentOfExpected <= ProjectHealthRules.PARTIAL_HOURS_THRESHOLD_PERCENT) {
         flags.push({
           type: 'PARTIAL_HOURS',
-          employeeId: expectation.employeeId,
+          employeeId: expectation.resourceProfileId,
           message: ProjectHealthMessages.PARTIAL_HOURS(
             expectation.employeeName,
             logged,
@@ -185,18 +187,18 @@ export class ProjectHealthService {
     return flags;
   }
 
-  private buildEmployeeExpectations(
+  private buildResourceExpectations(
     allocations: Array<{
-      employeeId: number;
+      resourceProfileId: number;
       employeeName: string;
       utilizationPercent: number;
     }>,
     maxWeeklyHours: number,
-  ): EmployeeWeekExpectation[] {
-    const byEmployee = new Map<number, EmployeeWeekExpectation>();
+  ): ResourceWeekExpectation[] {
+    const byResource = new Map<number, ResourceWeekExpectation>();
 
     for (const allocation of allocations) {
-      const existing = byEmployee.get(allocation.employeeId);
+      const existing = byResource.get(allocation.resourceProfileId);
 
       if (existing) {
         existing.utilizationPercent += allocation.utilizationPercent;
@@ -207,8 +209,8 @@ export class ProjectHealthService {
         continue;
       }
 
-      byEmployee.set(allocation.employeeId, {
-        employeeId: allocation.employeeId,
+      byResource.set(allocation.resourceProfileId, {
+        resourceProfileId: allocation.resourceProfileId,
         employeeName: allocation.employeeName,
         utilizationPercent: allocation.utilizationPercent,
         expectedHours: this.calculateExpectedHours(
@@ -218,7 +220,7 @@ export class ProjectHealthService {
       });
     }
 
-    return Array.from(byEmployee.values());
+    return Array.from(byResource.values());
   }
 
   private calculateExpectedHours(utilizationPercent: number, maxWeeklyHours: number): number {

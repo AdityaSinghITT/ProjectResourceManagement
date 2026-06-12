@@ -1,18 +1,18 @@
-import { Role } from '@prisma/client';
-import { IEmployeeRepository } from '../../domain/interfaces/IEmployeeRepository';
+import { IResourceProfileRepository } from '../../domain/interfaces/IResourceProfileRepository';
 import { IUserRepository } from '../../domain/interfaces/IUserRepository';
 import { AppError } from '../../shared/errors/AppError';
 import { AdminMessages } from '../../shared/constants/adminMessages';
 import { ErrorTitles, HttpStatus } from '../../shared/constants/httpStatusCodes';
+import { RoleNames } from '../../shared/constants/roleNames';
 
 export async function validateActiveProjectManager(
   managerUserId: number,
   userRepository: IUserRepository,
-  employeeRepository: IEmployeeRepository,
+  resourceProfileRepository: IResourceProfileRepository,
 ): Promise<void> {
   const user = await userRepository.findById(managerUserId);
 
-  if (!user || user.role !== Role.MANAGER) {
+  if (!user || user.role !== RoleNames.MANAGER) {
     throw new AppError(HttpStatus.BAD_REQUEST, AdminMessages.INVALID_MANAGER, ErrorTitles.BAD_REQUEST);
   }
 
@@ -24,9 +24,9 @@ export async function validateActiveProjectManager(
     );
   }
 
-  const employee = await employeeRepository.findByUserId(managerUserId);
+  const profile = await resourceProfileRepository.findByUserId(managerUserId);
 
-  if (!employee || !employee.isActive) {
+  if (!profile || !profile.isActive) {
     throw new AppError(
       HttpStatus.BAD_REQUEST,
       AdminMessages.INACTIVE_MANAGER_CANNOT_BE_ASSIGNED,
@@ -38,11 +38,11 @@ export async function validateActiveProjectManager(
 export async function validateActiveReportingManager(
   managerUserId: number,
   userRepository: IUserRepository,
-  employeeRepository: IEmployeeRepository,
+  resourceProfileRepository: IResourceProfileRepository,
 ): Promise<void> {
   const user = await userRepository.findById(managerUserId);
 
-  if (!user || user.role !== Role.MANAGER || !user.isActive) {
+  if (!user || user.role !== RoleNames.MANAGER || !user.isActive) {
     throw new AppError(
       HttpStatus.BAD_REQUEST,
       AdminMessages.INVALID_REPORTING_MANAGER,
@@ -50,9 +50,9 @@ export async function validateActiveReportingManager(
     );
   }
 
-  const employee = await employeeRepository.findByUserId(managerUserId);
+  const profile = await resourceProfileRepository.findByUserId(managerUserId);
 
-  if (!employee || !employee.isActive) {
+  if (!profile || !profile.isActive) {
     throw new AppError(
       HttpStatus.BAD_REQUEST,
       AdminMessages.INVALID_REPORTING_MANAGER,

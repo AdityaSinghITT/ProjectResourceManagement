@@ -1,5 +1,5 @@
 import { IAllocationRepository } from '../../domain/interfaces/IAllocationRepository';
-import { IEmployeeRepository } from '../../domain/interfaces/IEmployeeRepository';
+import { IResourceProfileRepository } from '../../domain/interfaces/IResourceProfileRepository';
 import { EmployeeDashboardDetail, ResourceDashboardResult } from '../../domain/types/allocation.types';
 import { TimesheetService } from './TimesheetService';
 import { ErrorTitles, HttpStatus } from '../../shared/constants/httpStatusCodes';
@@ -14,7 +14,7 @@ import {
 
 export class ManagerDashboardService {
   constructor(
-    private readonly employeeRepository: IEmployeeRepository,
+    private readonly resourceProfileRepository: IResourceProfileRepository,
     private readonly allocationRepository: IAllocationRepository,
     private readonly timesheetService: TimesheetService,
   ) {}
@@ -22,7 +22,7 @@ export class ManagerDashboardService {
   async getDashboard(managerUserId: number): Promise<ResourceDashboardResult> {
     appLogger.info('Fetching manager dashboard', { managerUserId });
 
-    const teamMembers = await this.employeeRepository.listTeamMembers(managerUserId);
+    const teamMembers = await this.resourceProfileRepository.listTeamMembers(managerUserId);
     const today = todayDateOnly();
     const monthLabel = today.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
@@ -32,7 +32,7 @@ export class ManagerDashboardService {
           member.id,
           today,
         );
-        const skills = await this.employeeRepository.listSkills(member.id);
+        const skills = await this.resourceProfileRepository.listSkills(member.userId);
         const skillsSummary =
           skills.length > 0
             ? skills
@@ -71,11 +71,14 @@ export class ManagerDashboardService {
 
   async getEmployeeDetail(
     managerUserId: number,
-    employeeId: number,
+    resourceProfileId: number,
   ): Promise<EmployeeDashboardDetail> {
-    appLogger.info('Fetching employee dashboard detail', { managerUserId, employeeId });
+    appLogger.info('Fetching employee dashboard detail', { managerUserId, resourceProfileId });
 
-    const teamMember = await this.employeeRepository.findTeamMember(managerUserId, employeeId);
+    const teamMember = await this.resourceProfileRepository.findTeamMember(
+      managerUserId,
+      resourceProfileId,
+    );
 
     if (!teamMember) {
       throw new AppError(
@@ -90,15 +93,15 @@ export class ManagerDashboardService {
       teamMember.id,
       today,
     );
-    const skills = await this.employeeRepository.listSkills(teamMember.id);
-    const activeAllocations = await this.allocationRepository.listActiveViewsByEmployee(
+    const skills = await this.resourceProfileRepository.listSkills(teamMember.userId);
+    const activeAllocations = await this.allocationRepository.listActiveViewsByResourceProfile(
       teamMember.id,
       today,
     );
     const recentActivityTags = await this.timesheetService.listRecentActivityLabels(teamMember.id);
 
     appLogger.debug('Loaded recent activity tags for employee dashboard', {
-      employeeId: teamMember.id,
+      resourceProfileId: teamMember.id,
       tagCount: recentActivityTags.length,
     });
 
@@ -107,7 +110,7 @@ export class ManagerDashboardService {
       fullName: teamMember.fullName,
       department: teamMember.department,
       designation: teamMember.designation,
-      currentStatus: teamMember.status,
+      currentStatus: teamMember.resourceStatus,
       utilizationPercent,
       profileSkills: skills.map((skill) => skill.skillName),
       activeAllocations,

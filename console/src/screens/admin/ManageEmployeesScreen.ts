@@ -74,9 +74,13 @@ async function viewEmployees(context: AppContext): Promise<void> {
 }
 
 async function updateEmployee(context: AppContext): Promise<void> {
-  const employeeId = Number(await context.prompt.ask('Enter Employee ID: '));
-  const department = await context.prompt.ask('New Department (blank to skip): ');
-  const designation = await context.prompt.ask('New Designation (blank to skip): ');
+  const employeeId = Number(await context.prompt.ask('Enter Resource profile ID: '));
+  const department = await context.prompt.ask(
+    'New Department (ENGINEERING/QUALITY_ASSURANCE/DEVOPS/PRODUCT/HUMAN_RESOURCES, blank to skip): ',
+  );
+  const designation = await context.prompt.ask(
+    'New Designation (SOFTWARE_ENGINEER/SENIOR_SOFTWARE_ENGINEER/TEAM_LEAD/PROJECT_MANAGER/QA_ENGINEER/DEVOPS_ENGINEER/BUSINESS_ANALYST, blank to skip): ',
+  );
   const body: Record<string, string> = {};
   if (department) body.department = department;
   if (designation) body.designation = designation;
@@ -85,11 +89,12 @@ async function updateEmployee(context: AppContext): Promise<void> {
 }
 
 async function deactivateEmployee(context: AppContext): Promise<void> {
-  const employeeId = Number(await context.prompt.ask('Enter Employee ID: '));
+  const employeeId = Number(await context.prompt.ask('Enter Resource profile ID: '));
   const preview = await context.admin.previewEmployeeDeactivation(employeeId);
+  const resourceStatus = preview.employee.resourceStatus ?? preview.employee.status ?? 'UNKNOWN';
   console.log(`\n── ${preview.employee.fullName} ──`);
-  console.log(`Department : ${preview.employee.department}`);
-  console.log(`Status     : ${preview.employee.status}`);
+  console.log(`Department : ${preview.employee.department ?? '—'}`);
+  console.log(`Status     : ${resourceStatus}`);
 
   if (preview.activeAllocations.length > 0) {
     console.log(`\nWarning: ${preview.activeAllocations.length} active allocation(s) will be ended.`);

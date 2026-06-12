@@ -1,11 +1,15 @@
-import { Role } from '@prisma/client';
+import { Department, Designation } from '@prisma/client';
+import { RoleName } from '../../shared/constants/roleNames';
 
 export interface UserProfile {
   id: number;
   username: string;
   email: string;
   fullName: string;
-  role: Role;
+  role: RoleName;
+  department: Department | null;
+  designation: Designation | null;
+  permissions: string[];
   forcePasswordChange: boolean;
 }
 

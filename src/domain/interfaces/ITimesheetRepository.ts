@@ -7,27 +7,37 @@ import {
 } from '../types/timesheet.types';
 
 export interface CreateTimesheetInput {
-  employeeId: number;
+  resourceProfileId: number;
   weekStart: Date;
   status: TimesheetStatus;
   entries: SubmitTimesheetEntryInput[];
 }
 
+export interface CreateMissedTimesheetInput {
+  resourceProfileId: number;
+  weekStart: Date;
+  projectIds: number[];
+}
+
 export interface ITimesheetRepository {
-  findByEmployeeAndWeek(employeeId: number, weekStart: Date): Promise<TimesheetWeekView | null>;
+  findByResourceProfileAndWeek(
+    resourceProfileId: number,
+    weekStart: Date,
+  ): Promise<TimesheetWeekView | null>;
   createWithEntries(input: CreateTimesheetInput): Promise<TimesheetWeekView>;
-  listHistoryByEmployee(employeeId: number): Promise<TimesheetHistoryResult>;
+  createMissedTimesheet(input: CreateMissedTimesheetInput): Promise<TimesheetWeekView>;
+  listHistoryByResourceProfile(resourceProfileId: number): Promise<TimesheetHistoryResult>;
   listRecentActivityTags(
-    employeeId: number,
+    resourceProfileId: number,
     sinceWeekStart: Date,
     limit: number,
   ): Promise<RecentActivityTagRecord[]>;
   listTeamEntriesForWeek(
-    employeeIds: number[],
+    resourceProfileIds: number[],
     weekStart: Date,
   ): Promise<
     Array<{
-      employeeId: number;
+      resourceProfileId: number;
       employeeName: string;
       projectId: number;
       projectName: string;
@@ -35,8 +45,8 @@ export interface ITimesheetRepository {
       timesheetStatus: TimesheetStatus | null;
     }>
   >;
-  listProjectHoursByEmployeeForWeek(
+  listProjectHoursByResourceProfileForWeek(
     projectId: number,
     weekStart: Date,
-  ): Promise<Array<{ employeeId: number; employeeName: string; hours: number }>>;
+  ): Promise<Array<{ resourceProfileId: number; employeeName: string; hours: number }>>;
 }

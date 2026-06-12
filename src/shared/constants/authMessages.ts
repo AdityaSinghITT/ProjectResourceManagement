@@ -9,6 +9,7 @@ export const AuthMessages = {
   INVALID_AUTH_FORMAT: 'Authorization header must use Bearer scheme',
   INVALID_OR_EXPIRED_TOKEN: 'Invalid or expired token',
   INSUFFICIENT_ROLE: 'You do not have permission to access this resource',
+  INSUFFICIENT_PERMISSION: 'You do not have the required permission for this action',
   USER_NOT_FOUND: 'User not found',
 } as const;
 

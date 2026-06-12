@@ -3,6 +3,7 @@ import { Screen } from '../../navigation/Screen';
 import { drawTitle } from '../../ui/components/Box';
 import { printTable } from '../../ui/components/Table';
 import { printApiError } from '../../ui/handleApiError';
+import { runResetUserPassword } from './ResetUserPasswordScreen';
 
 export const ManageUsersScreen: Screen = {
   name: 'ManageUsersScreen',
@@ -27,7 +28,7 @@ export const ManageUsersScreen: Screen = {
           await viewUsers(context);
           break;
         case '3':
-          await resetPassword(context);
+          await runResetUserPassword(context);
           break;
         case '4':
           await deactivateUser(context);
@@ -51,9 +52,9 @@ async function createUser(context: AppContext): Promise<void> {
   const email = await context.prompt.ask('Email             : ');
   const username = await context.prompt.ask('Username          : ');
   const temporaryPassword = await context.prompt.ask('Temporary Password: ');
-  const roleChoice = await context.prompt.ask('Role (1) Admin (2) Manager (3) Employee: ');
-  const roleMap: Record<string, string> = { '1': 'ADMIN', '2': 'MANAGER', '3': 'EMPLOYEE' };
-  const role = roleMap[roleChoice] ?? 'EMPLOYEE';
+  const roleChoice = await context.prompt.ask('Role (1) Admin (2) Manager (3) Resource: ');
+  const roleMap: Record<string, string> = { '1': 'ADMIN', '2': 'MANAGER', '3': 'RESOURCE' };
+  const role = roleMap[roleChoice] ?? 'RESOURCE';
 
   const body: Record<string, string> = {
     fullName,
@@ -63,13 +64,18 @@ async function createUser(context: AppContext): Promise<void> {
     role,
   };
 
-  if (role === 'EMPLOYEE' || role === 'MANAGER') {
-    body.department = await context.prompt.ask('Department: ');
-    body.designation = await context.prompt.ask('Designation: ');
+  if (role === 'RESOURCE' || role === 'MANAGER') {
+    body.department = await context.prompt.ask(
+      'Department (ENGINEERING/QUALITY_ASSURANCE/DEVOPS/PRODUCT/HUMAN_RESOURCES): ',
+    );
+    body.designation = await context.prompt.ask(
+      'Designation (SOFTWARE_ENGINEER/SENIOR_SOFTWARE_ENGINEER/TEAM_LEAD/PROJECT_MANAGER/QA_ENGINEER/DEVOPS_ENGINEER/BUSINESS_ANALYST): ',
+    );
   }
 
   const result = await context.admin.createUser(body);
-  console.log('\nAccount created. User must change password on first login.', result);
+  console.log(`\n${result.message}`);
+  console.log(`User ID: ${result.user.id}   Username: ${result.user.username}`);
 }
 
 async function viewUsers(context: AppContext): Promise<void> {
@@ -91,13 +97,6 @@ async function viewUsers(context: AppContext): Promise<void> {
     await context.admin.reactivateUser(userId);
     console.log('\nAccount reactivated.');
   }
-}
-
-async function resetPassword(context: AppContext): Promise<void> {
-  const identifier = await context.prompt.ask('Enter Username or User ID: ');
-  const newTemporaryPassword = await context.prompt.ask('New Temporary Password: ');
-  await context.admin.resetUserPasswordByIdentifier(identifier, newTemporaryPassword);
-  console.log('\nPassword reset. User will be prompted to change it on next login.');
 }
 
 async function deactivateUser(context: AppContext): Promise<void> {

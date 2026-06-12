@@ -1,17 +1,19 @@
-import { Role } from '@prisma/client';
+import { RoleName } from '../../shared/constants/roleNames';
 import { UserProfile } from './user.types';
 
 export interface AccessTokenClaims {
   sub: number;
   username: string;
-  role: Role;
+  role: RoleName;
+  permissions: string[];
   forcePasswordChange: boolean;
 }
 
 export interface AuthenticatedUser {
   id: number;
   username: string;
-  role: Role;
+  role: RoleName;
+  permissions: string[];
   forcePasswordChange: boolean;
 }
 

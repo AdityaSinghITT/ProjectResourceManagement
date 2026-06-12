@@ -1,18 +1,20 @@
 import {
-  EmployeeStatus,
+  Department,
+  Designation,
   LlmProvider,
   MilestoneStatus,
   ProficiencyLevel,
   ProjectStatus,
-  Role,
+  ResourceStatus,
   SkillCategory,
 } from '@prisma/client';
+import { RoleName } from '../../shared/constants/roleNames';
 
 export interface AdminUserListItem {
   id: number;
   username: string;
   fullName: string;
-  role: Role;
+  role: RoleName;
   isActive: boolean;
 }
 
@@ -29,9 +31,9 @@ export interface EmployeeListItem {
   id: number;
   userId: number;
   fullName: string;
-  department: string;
-  designation: string;
-  status: EmployeeStatus;
+  department: Department | null;
+  designation: Designation | null;
+  status: ResourceStatus;
   isActive: boolean;
   managerId: number | null;
   managerName: string | null;
@@ -94,6 +96,8 @@ export interface CreateUserResult {
 export interface SystemConfigView {
   llmProvider: LlmProvider;
   llmApiKeyMasked: string;
+  llmBaseUrl: string | null;
+  llmModel: string | null;
   schedulerIntervalHours: number;
   maxWeeklyHours: number;
 }

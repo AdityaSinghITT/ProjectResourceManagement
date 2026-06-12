@@ -1,9 +1,9 @@
 import { MilestoneStatus } from '@prisma/client';
-import { IAllocationRepository } from '../../domain/interfaces/IAllocationRepository';
-import { IProjectRepository } from '../../domain/interfaces/IProjectRepository';
-import { ISystemConfigRepository } from '../../domain/interfaces/ISystemConfigRepository';
-import { ITimesheetRepository } from '../../domain/interfaces/ITimesheetRepository';
-import { ProjectHealthService } from './ProjectHealthService';
+import { IAllocationRepository } from '../../../domain/interfaces/IAllocationRepository';
+import { IProjectRepository } from '../../../domain/interfaces/IProjectRepository';
+import { ISystemConfigRepository } from '../../../domain/interfaces/ISystemConfigRepository';
+import { ITimesheetRepository } from '../../../domain/interfaces/ITimesheetRepository';
+import { ProjectHealthService } from '../../services/ProjectHealthService';
 
 describe('ProjectHealthService', () => {
   const projectRepository: jest.Mocked<IProjectRepository> = {
@@ -25,25 +25,27 @@ describe('ProjectHealthService', () => {
     findById: jest.fn(),
     endAllocation: jest.fn(),
     listAdmin: jest.fn(),
-    listOverlappingForEmployee: jest.fn(),
-    listActiveByEmployee: jest.fn(),
+    listOverlappingForResourceProfile: jest.fn(),
+    listActiveByResourceProfile: jest.fn(),
     getCurrentUtilizationPercent: jest.fn(),
-    listActiveViewsByEmployee: jest.fn(),
-    listOverlappingViewsForEmployee: jest.fn(),
+    listActiveViewsByResourceProfile: jest.fn(),
+    listOverlappingViewsForResourceProfile: jest.fn(),
     listOverlappingViewsForProject: jest.fn(),
   };
 
   const timesheetRepository: jest.Mocked<ITimesheetRepository> = {
-    findByEmployeeAndWeek: jest.fn(),
+    findByResourceProfileAndWeek: jest.fn(),
     createWithEntries: jest.fn(),
-    listHistoryByEmployee: jest.fn(),
+    createMissedTimesheet: jest.fn(),
+    listHistoryByResourceProfile: jest.fn(),
     listRecentActivityTags: jest.fn(),
     listTeamEntriesForWeek: jest.fn(),
-    listProjectHoursByEmployeeForWeek: jest.fn(),
+    listProjectHoursByResourceProfileForWeek: jest.fn(),
   };
 
   const systemConfigRepository: jest.Mocked<ISystemConfigRepository> = {
     get: jest.fn(),
+    getLlmRuntimeConfig: jest.fn(),
     update: jest.fn(),
   };
 
@@ -63,6 +65,8 @@ describe('ProjectHealthService', () => {
     systemConfigRepository.get.mockResolvedValue({
       llmProvider: 'GEMINI',
       llmApiKeyMasked: '****',
+      llmBaseUrl: null,
+      llmModel: null,
       schedulerIntervalHours: 4,
       maxWeeklyHours: 40,
     } as never);
@@ -123,12 +127,12 @@ describe('ProjectHealthService', () => {
       milestones: [],
       allocations: [
         {
-          employeeId: 3,
+          resourceProfileId: 3,
           employeeName: 'Riya Patel',
           utilizationPercent: 50,
         },
       ],
-      loggedHours: [{ employeeId: 3, employeeName: 'Riya Patel', hours: 8 }],
+      loggedHours: [{ resourceProfileId: 3, employeeName: 'Riya Patel', hours: 8 }],
       maxWeeklyHours: 40,
       priorWeekStart,
       priorWeekEnd,
@@ -144,12 +148,12 @@ describe('ProjectHealthService', () => {
       milestones: [],
       allocations: [
         {
-          employeeId: 3,
+          resourceProfileId: 3,
           employeeName: 'Riya Patel',
           utilizationPercent: 50,
         },
       ],
-      loggedHours: [{ employeeId: 3, employeeName: 'Riya Patel', hours: 15 }],
+      loggedHours: [{ resourceProfileId: 3, employeeName: 'Riya Patel', hours: 15 }],
       maxWeeklyHours: 40,
       priorWeekStart,
       priorWeekEnd,
@@ -175,12 +179,12 @@ describe('ProjectHealthService', () => {
       ],
       allocations: [
         {
-          employeeId: 3,
+          resourceProfileId: 3,
           employeeName: 'Riya Patel',
           utilizationPercent: 50,
         },
       ],
-      loggedHours: [{ employeeId: 3, employeeName: 'Riya Patel', hours: 20 }],
+      loggedHours: [{ resourceProfileId: 3, employeeName: 'Riya Patel', hours: 20 }],
       maxWeeklyHours: 40,
       priorWeekStart,
       priorWeekEnd,
@@ -206,12 +210,12 @@ describe('ProjectHealthService', () => {
       ],
       allocations: [
         {
-          employeeId: 3,
+          resourceProfileId: 3,
           employeeName: 'Riya Patel',
           utilizationPercent: 50,
         },
       ],
-      loggedHours: [{ employeeId: 3, employeeName: 'Riya Patel', hours: 5 }],
+      loggedHours: [{ resourceProfileId: 3, employeeName: 'Riya Patel', hours: 5 }],
       maxWeeklyHours: 40,
       priorWeekStart,
       priorWeekEnd,

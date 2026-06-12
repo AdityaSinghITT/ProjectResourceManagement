@@ -6,7 +6,6 @@ import { drawDivider, drawTitle } from '../../ui/components/Box';
 import { printTable } from '../../ui/components/Table';
 import { parseDisplayDateToApi } from '../../ui/formatters/dateFormatter';
 import { printApiError } from '../../ui/handleApiError';
-import { AiStubScreen } from './AiStubScreen';
 
 export const AllocateResourceScreen: Screen = {
   name: 'AllocateResourceScreen',
@@ -23,7 +22,7 @@ export const AllocateResourceScreen: Screen = {
 
     switch (choice) {
       case '1':
-        return { type: 'push', screen: AiStubScreen('AI-assisted allocation') };
+        return runAiAssistedAllocation(context);
       case '2':
         return runDirectAllocation(context);
       case '3':
@@ -38,7 +37,70 @@ export const AllocateResourceScreen: Screen = {
   },
 };
 
-async function runDirectAllocation(context: AppContext): Promise<NavigationResult> {
+async function runAiAssistedAllocation(context: AppContext): Promise<NavigationResult> {
+  console.clear();
+  drawTitle('AI-ASSISTED ALLOCATION');
+
+  const requirement = await context.prompt.ask(
+    '\nDescribe who you need (skills, %, hours):\n> ',
+  );
+
+  if (!requirement.trim()) {
+    console.log('\nRequirement cannot be empty.');
+    await context.prompt.pause();
+    return { type: 'stay' };
+  }
+
+  try {
+    console.log('\nFinding matches (this may take a moment)...');
+    const result = await context.manager.allocationsAiMatch(requirement.trim());
+
+    console.log(`\n${result.disclaimer}`);
+    console.log(`Pre-filtered candidates: ${result.preFilteredCount}`);
+
+    if (result.matches.length === 0) {
+      console.log('\nNo matches found. Try direct allocation or adjust the requirement.');
+      await context.prompt.pause();
+      return { type: 'stay' };
+    }
+
+    printTable(
+      ['#', 'Employee ID', 'Name', 'Reason'],
+      result.matches.map((match, index) => [
+        String(index + 1),
+        String(match.resourceProfileId),
+        match.fullName,
+        match.reason,
+      ]),
+    );
+
+    const pick = await context.prompt.ask(
+      '\nEnter match # to allocate (or B to go back): ',
+    );
+    if (pick.toUpperCase() === 'B') {
+      return { type: 'stay' };
+    }
+
+    const matchIndex = Number(pick) - 1;
+    const match = result.matches[matchIndex];
+    if (!match) {
+      console.log('\nInvalid selection.');
+      await context.prompt.pause();
+      return { type: 'stay' };
+    }
+
+    return runDirectAllocation(context, match.resourceProfileId);
+  } catch (error) {
+    printApiError(error);
+    await context.prompt.pause();
+    return { type: 'stay' };
+  }
+}
+
+async function runDirectAllocation(
+  context: AppContext,
+  presetEmployeeId?: number,
+): Promise<NavigationResult> {
   console.clear();
   drawTitle('DIRECT ALLOCATION');
 
@@ -50,7 +112,9 @@ async function runDirectAllocation(context: AppContext): Promise<NavigationResul
     }
 
     const projectId = Number(await context.prompt.ask('\nSelect Project ID: '));
-    const employeeId = Number(await context.prompt.ask('Enter Employee ID (employee table id from dashboard): '));
+    const employeeId =
+      presetEmployeeId ??
+      Number(await context.prompt.ask('Enter Employee ID (resource profile ID from dashboard): '));
     const utilizationPercent = Number(await context.prompt.ask('Utilisation %   : '));
     const fromDateDisplay = await context.prompt.ask('From Date (DD-MM-YYYY): ');
     const toDateDisplay = await context.prompt.ask('To Date (DD-MM-YYYY)  : ');
@@ -77,8 +141,8 @@ async function runDirectAllocation(context: AppContext): Promise<NavigationResul
       return { type: 'stay' };
     }
 
-    const result = await context.manager.createAllocation(body);
-    console.log(`\n${result.message}`);
+    const createResult = await context.manager.createAllocation(body);
+    console.log(`\n${createResult.message}`);
   } catch (error) {
     printApiError(error);
   }

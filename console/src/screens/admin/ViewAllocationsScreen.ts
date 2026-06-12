@@ -12,18 +12,20 @@ export const ViewAllocationsScreen: Screen = {
     drawTitle('ALL ALLOCATIONS');
 
     try {
-      const filter = await context.prompt.ask('[F] Filter by employee/project ID or Enter for all: ');
-      let employeeId: number | undefined;
+      const filter = await context.prompt.ask(
+        '[F] Filter by resource profile/project ID or Enter for all: ',
+      );
+      let resourceProfileId: number | undefined;
       let projectId: number | undefined;
 
       if (filter.toUpperCase() === 'F') {
-        const employeeRaw = await context.prompt.ask('Employee ID (blank for any): ');
+        const resourceRaw = await context.prompt.ask('Resource profile ID (blank for any): ');
         const projectRaw = await context.prompt.ask('Project ID (blank for any): ');
-        employeeId = employeeRaw ? Number(employeeRaw) : undefined;
+        resourceProfileId = resourceRaw ? Number(resourceRaw) : undefined;
         projectId = projectRaw ? Number(projectRaw) : undefined;
       }
 
-      const result = await context.admin.listAllocations({ employeeId, projectId });
+      const result = await context.admin.listAllocations({ resourceProfileId, projectId });
       printTable(
         ['Employee', 'Project', '%', 'From', 'To'],
         result.allocations.map((allocation) => [

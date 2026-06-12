@@ -10,6 +10,7 @@ export function createRoleMenuScreen(role: UserRole): Screen {
       return AdminMenuScreen;
     case 'MANAGER':
       return ManagerMenuScreen;
+    case 'RESOURCE':
     case 'EMPLOYEE':
       return EmployeeMenuScreen;
     default:

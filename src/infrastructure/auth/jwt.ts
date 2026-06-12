@@ -20,6 +20,7 @@ export function buildAccessTokenClaims(user: UserProfile): AccessTokenClaims {
     sub: user.id,
     username: user.username,
     role: user.role,
+    permissions: user.permissions,
     forcePasswordChange: user.forcePasswordChange,
   };
 }

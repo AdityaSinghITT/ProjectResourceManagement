@@ -5,6 +5,7 @@ export const HttpStatus = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
+  BAD_GATEWAY: 502,
   INTERNAL_SERVER_ERROR: 500,
   SERVICE_UNAVAILABLE: 503,
 } as const;
@@ -16,4 +17,5 @@ export const ErrorTitles = {
   NOT_FOUND: 'Not Found',
   CONFLICT: 'Conflict',
   INTERNAL_SERVER_ERROR: 'Internal Server Error',
+  SERVICE_UNAVAILABLE: 'Service Unavailable',
 } as const;

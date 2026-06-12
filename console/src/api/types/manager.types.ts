@@ -130,7 +130,8 @@ export interface AllocationRequest {
 }
 
 export interface TeamTimesheetRow {
-  employeeId: number;
+  resourceProfileId: number;
+  employeeId?: number;
   employeeName: string;
   projectId: number;
   projectName: string;
@@ -142,4 +143,57 @@ export interface ManagerTeamTimesheetResult {
   weekStart: string;
   weekEnd: string;
   rows: TeamTimesheetRow[];
+}
+
+export interface SkillMatchResult {
+  aiGenerated: true;
+  disclaimer: string;
+  requirement: string;
+  requiredUtilizationPercent: number | null;
+  matches: Array<{
+    resourceProfileId: number;
+    fullName: string;
+    reason: string;
+  }>;
+  preFilteredCount: number;
+}
+
+export interface TeamBuilderSkillRequirement {
+  skillName: string;
+  minProficiency: string;
+}
+
+export interface TeamBuilderGap {
+  reasonType: string;
+  message: string;
+  alternativeEmployeeName?: string | null;
+  availableFromDate?: string | null;
+}
+
+export interface TeamBuilderRoleResult {
+  roleTitle: string;
+  requiredSkills: TeamBuilderSkillRequirement[];
+  status: string;
+  assignedEmployeeName?: string | null;
+  matchScore?: number | null;
+  reason?: string | null;
+  gap?: TeamBuilderGap | null;
+}
+
+export interface TeamBuilderResult {
+  aiGenerated: true;
+  disclaimer: string;
+  requirement: string;
+  roles: TeamBuilderRoleResult[];
+  assignableCount: number;
+  totalCandidateCount: number;
+}
+
+export interface AiRiskSummaryResult {
+  aiGenerated: true;
+  disclaimer: string;
+  projectId: number;
+  projectName: string;
+  summary: string;
+  health: ProjectHealthEvaluation;
 }

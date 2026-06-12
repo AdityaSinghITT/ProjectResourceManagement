@@ -1,6 +1,6 @@
 import { ProjectStatus } from '@prisma/client';
 import { IAllocationRepository } from '../../domain/interfaces/IAllocationRepository';
-import { IEmployeeRepository } from '../../domain/interfaces/IEmployeeRepository';
+import { IResourceProfileRepository } from '../../domain/interfaces/IResourceProfileRepository';
 import { IProjectRepository } from '../../domain/interfaces/IProjectRepository';
 import {
   AllocationListResult,
@@ -33,13 +33,13 @@ export interface AllocationRequest {
 export class AllocationService {
   constructor(
     private readonly allocationRepository: IAllocationRepository,
-    private readonly employeeRepository: IEmployeeRepository,
+    private readonly resourceProfileRepository: IResourceProfileRepository,
     private readonly projectRepository: IProjectRepository,
     private readonly employeeStatusService: EmployeeStatusService,
   ) {}
 
   async listAdminAllocations(filters: {
-    employeeId?: number;
+    resourceProfileId?: number;
     projectId?: number;
   }): Promise<AllocationListResult> {
     appLogger.info('Listing admin allocations', { filters });
@@ -64,20 +64,21 @@ export class AllocationService {
       throw new AppError(HttpStatus.BAD_REQUEST, validation.message, ErrorTitles.BAD_REQUEST);
     }
 
+    const resourceProfileId = request.employeeId;
     const allocation = await this.allocationRepository.create({
-      employeeId: request.employeeId,
+      resourceProfileId,
       projectId: request.projectId,
       utilizationPercent: request.utilizationPercent,
       fromDate: parseIsoDate(request.fromDate),
       toDate: parseIsoDate(request.toDate),
     });
 
-    await this.employeeStatusService.recomputeStatus(request.employeeId, todayDateOnly());
+    await this.employeeStatusService.recomputeStatus(resourceProfileId, todayDateOnly());
 
     appLogger.info('Allocation created', {
       managerUserId,
       allocationId: allocation.id,
-      employeeId: request.employeeId,
+      resourceProfileId,
       projectId: request.projectId,
     });
 
@@ -127,12 +128,12 @@ export class AllocationService {
     }
 
     const ended = await this.allocationRepository.endAllocation(allocationId, today);
-    await this.employeeStatusService.recomputeStatus(allocation.employeeId, today);
+    await this.employeeStatusService.recomputeStatus(allocation.resourceProfileId, today);
 
     appLogger.info('Allocation ended', {
       managerUserId,
       allocationId,
-      employeeId: allocation.employeeId,
+      resourceProfileId: allocation.resourceProfileId,
       endDate: formatDateOnly(today),
     });
 
@@ -156,9 +157,10 @@ export class AllocationService {
       );
     }
 
-    const teamMember = await this.employeeRepository.findTeamMember(
+    const resourceProfileId = request.employeeId;
+    const teamMember = await this.resourceProfileRepository.findTeamMember(
       managerUserId,
-      request.employeeId,
+      resourceProfileId,
     );
 
     if (!teamMember) {
@@ -195,17 +197,13 @@ export class AllocationService {
       );
     }
 
-    const overlapping = await this.allocationRepository.listOverlappingForEmployee(
-      request.employeeId,
+    const overlapping = await this.allocationRepository.listOverlappingForResourceProfile(
+      resourceProfileId,
       fromDate,
       toDate,
     );
 
-    const currentUtilizationPercent = sumOverlappingUtilization(
-      overlapping,
-      fromDate,
-      toDate,
-    );
+    const currentUtilizationPercent = sumOverlappingUtilization(overlapping, fromDate, toDate);
     const totalUtilizationPercent = calculateTotalUtilization(
       currentUtilizationPercent,
       request.utilizationPercent,

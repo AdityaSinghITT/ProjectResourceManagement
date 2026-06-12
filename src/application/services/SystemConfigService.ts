@@ -2,12 +2,14 @@ import { LlmProvider } from '@prisma/client';
 import { ISystemConfigRepository } from '../../domain/interfaces/ISystemConfigRepository';
 import { SystemConfigView } from '../../domain/types/admin.types';
 import { AppError } from '../../shared/errors/AppError';
-import { AdminMessages } from '../../shared/constants/adminMessages';
+import { AdminMessages, MaskedValues } from '../../shared/constants/adminMessages';
 import { ErrorTitles, HttpStatus } from '../../shared/constants/httpStatusCodes';
 
 export interface UpdateSystemConfigRequest {
   llmProvider?: LlmProvider;
   llmApiKey?: string | null;
+  llmBaseUrl?: string | null;
+  llmModel?: string | null;
   schedulerIntervalHours?: number;
   maxWeeklyHours?: number;
 }
@@ -34,14 +36,34 @@ export class SystemConfigService {
   ): Promise<{ message: string; config: SystemConfigView }> {
     this.validateNumericSettings(input);
 
+    const normalized = this.normalizeLlmApiKeyUpdate(input);
+
     const config = await this.systemConfigRepository.update({
-      llmProvider: input.llmProvider,
-      llmApiKey: input.llmApiKey,
-      schedulerIntervalHours: input.schedulerIntervalHours,
-      maxWeeklyHours: input.maxWeeklyHours,
+      llmProvider: normalized.llmProvider,
+      llmApiKey: normalized.llmApiKey,
+      llmBaseUrl: normalized.llmBaseUrl,
+      llmModel: normalized.llmModel,
+      schedulerIntervalHours: normalized.schedulerIntervalHours,
+      maxWeeklyHours: normalized.maxWeeklyHours,
     });
 
     return { message: AdminMessages.SYSTEM_CONFIG_UPDATED, config };
+  }
+
+  private normalizeLlmApiKeyUpdate(
+    input: UpdateSystemConfigRequest,
+  ): UpdateSystemConfigRequest {
+    if (input.llmApiKey === undefined) {
+      return input;
+    }
+
+    const trimmed = input.llmApiKey?.trim() ?? '';
+    if (trimmed === MaskedValues.API_KEY) {
+      const { llmApiKey: _ignored, ...rest } = input;
+      return rest;
+    }
+
+    return { ...input, llmApiKey: trimmed === '' ? null : trimmed };
   }
 
   private validateNumericSettings(input: UpdateSystemConfigRequest): void {

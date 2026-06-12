@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'RESOURCE' | 'EMPLOYEE';
 
 export interface UserProfile {
   id: number;
@@ -6,6 +6,9 @@ export interface UserProfile {
   email: string;
   fullName: string;
   role: UserRole;
+  department?: string | null;
+  designation?: string | null;
+  permissions?: string[];
   forcePasswordChange: boolean;
 }
 

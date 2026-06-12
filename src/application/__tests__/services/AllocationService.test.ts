@@ -1,21 +1,20 @@
-import { EmployeeStatus, ProjectStatus } from '@prisma/client';
-import { IAllocationRepository } from '../../domain/interfaces/IAllocationRepository';
-import { IEmployeeRepository } from '../../domain/interfaces/IEmployeeRepository';
-import { IProjectRepository } from '../../domain/interfaces/IProjectRepository';
-import { TeamMemberRecord } from '../../domain/interfaces/IEmployeeRepository';
-import { AppError } from '../../shared/errors/AppError';
-import { HttpStatus } from '../../shared/constants/httpStatusCodes';
-import { AllocationService } from './AllocationService';
-import { EmployeeStatusService } from './EmployeeStatusService';
+import { Department, Designation, ProjectStatus, ResourceStatus } from '@prisma/client';
+import { IAllocationRepository } from '../../../domain/interfaces/IAllocationRepository';
+import { IResourceProfileRepository, TeamMemberRecord } from '../../../domain/interfaces/IResourceProfileRepository';
+import { IProjectRepository } from '../../../domain/interfaces/IProjectRepository';
+import { AppError } from '../../../shared/errors/AppError';
+import { HttpStatus } from '../../../shared/constants/httpStatusCodes';
+import { AllocationService } from '../../services/AllocationService';
+import { EmployeeStatusService } from '../../services/EmployeeStatusService';
 
 describe('AllocationService', () => {
   const teamMember: TeamMemberRecord = {
     id: 1,
     userId: 5,
     fullName: 'Riya Patel',
-    department: 'Engineering',
-    designation: 'Developer',
-    status: EmployeeStatus.BENCH,
+    department: Department.ENGINEERING,
+    designation: Designation.SOFTWARE_ENGINEER,
+    resourceStatus: ResourceStatus.BENCH,
     isActive: true,
   };
 
@@ -24,22 +23,21 @@ describe('AllocationService', () => {
     findById: jest.fn(),
     endAllocation: jest.fn(),
     listAdmin: jest.fn(),
-    listOverlappingForEmployee: jest.fn(),
-    listActiveByEmployee: jest.fn(),
+    listOverlappingForResourceProfile: jest.fn(),
+    listActiveByResourceProfile: jest.fn(),
     getCurrentUtilizationPercent: jest.fn(),
-    listActiveViewsByEmployee: jest.fn(),
-    listOverlappingViewsForEmployee: jest.fn(),
+    listActiveViewsByResourceProfile: jest.fn(),
+    listOverlappingViewsForResourceProfile: jest.fn(),
     listOverlappingViewsForProject: jest.fn(),
   };
 
-  const employeeRepository: jest.Mocked<IEmployeeRepository> = {
+  const resourceProfileRepository: jest.Mocked<IResourceProfileRepository> = {
     create: jest.fn(),
     assignManager: jest.fn(),
     findById: jest.fn(),
     findByUserId: jest.fn(),
     list: jest.fn(),
     update: jest.fn(),
-    deactivate: jest.fn(),
     clearReportingManagerForTeam: jest.fn(),
     countTeamMembers: jest.fn(),
     getActiveAllocations: jest.fn(),
@@ -48,10 +46,11 @@ describe('AllocationService', () => {
     addSkill: jest.fn(),
     updateSkill: jest.fn(),
     removeSkill: jest.fn(),
-    findEmployeeSkill: jest.fn(),
-    updateStatus: jest.fn(),
+    findUserSkill: jest.fn(),
+    updateResourceStatus: jest.fn(),
     findTeamMember: jest.fn(),
     listTeamMembers: jest.fn(),
+    listOrganizationResources: jest.fn(),
   };
 
   const projectRepository: jest.Mocked<IProjectRepository> = {
@@ -74,7 +73,7 @@ describe('AllocationService', () => {
 
   const service = new AllocationService(
     allocationRepository,
-    employeeRepository,
+    resourceProfileRepository,
     projectRepository,
     employeeStatusService,
   );
@@ -89,7 +88,7 @@ describe('AllocationService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    employeeRepository.findTeamMember.mockResolvedValue(teamMember);
+    resourceProfileRepository.findTeamMember.mockResolvedValue(teamMember);
     projectRepository.findById.mockResolvedValue({
       id: 10,
       name: 'Portal Revamp',
@@ -105,7 +104,7 @@ describe('AllocationService', () => {
   });
 
   it('returns valid when overlapping utilization stays at 100%', async () => {
-    allocationRepository.listOverlappingForEmployee.mockResolvedValue([
+    allocationRepository.listOverlappingForResourceProfile.mockResolvedValue([
       {
         id: 2,
         utilizationPercent: 50,
@@ -122,7 +121,7 @@ describe('AllocationService', () => {
   });
 
   it('returns invalid when overlapping utilization exceeds 100%', async () => {
-    allocationRepository.listOverlappingForEmployee.mockResolvedValue([
+    allocationRepository.listOverlappingForResourceProfile.mockResolvedValue([
       {
         id: 2,
         utilizationPercent: 60,
@@ -144,11 +143,11 @@ describe('AllocationService', () => {
     });
   });
 
-  it('creates allocation and recomputes employee status when valid', async () => {
-    allocationRepository.listOverlappingForEmployee.mockResolvedValue([]);
+  it('creates allocation and recomputes resource status when valid', async () => {
+    allocationRepository.listOverlappingForResourceProfile.mockResolvedValue([]);
     allocationRepository.create.mockResolvedValue({
       id: 7,
-      employeeId: 1,
+      resourceProfileId: 1,
       employeeName: 'Riya Patel',
       projectId: 10,
       projectName: 'Portal Revamp',
@@ -165,7 +164,7 @@ describe('AllocationService', () => {
   });
 
   it('throws when create is attempted with invalid utilization', async () => {
-    allocationRepository.listOverlappingForEmployee.mockResolvedValue([
+    allocationRepository.listOverlappingForResourceProfile.mockResolvedValue([
       {
         id: 2,
         utilizationPercent: 60,
@@ -181,7 +180,7 @@ describe('AllocationService', () => {
   it('rejects end allocation for non-owner manager', async () => {
     allocationRepository.findById.mockResolvedValue({
       id: 7,
-      employeeId: 1,
+      resourceProfileId: 1,
       employeeName: 'Riya Patel',
       projectId: 10,
       projectName: 'Portal Revamp',

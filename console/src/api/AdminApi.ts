@@ -13,7 +13,9 @@ import { MilestoneListResult, MilestoneView } from './types/manager.types';
 export class AdminApi {
   constructor(private readonly http: HttpClient) {}
 
-  createUser(body: Record<string, unknown>): Promise<unknown> {
+  createUser(
+    body: Record<string, unknown>,
+  ): Promise<{ message: string; user: { id: number; username: string } }> {
     return this.http.post('/api/admin/users', body);
   }
 
@@ -25,14 +27,17 @@ export class AdminApi {
     return this.http.patch(`/api/admin/users/${userId}/reactivate`);
   }
 
-  resetUserPassword(userId: number, newTemporaryPassword: string): Promise<unknown> {
+  resetUserPassword(
+    userId: number,
+    newTemporaryPassword: string,
+  ): Promise<{ message: string; user: { id: number; username: string } }> {
     return this.http.post(`/api/admin/users/${userId}/reset-password`, { newTemporaryPassword });
   }
 
   resetUserPasswordByIdentifier(
     usernameOrUserId: string,
     newTemporaryPassword: string,
-  ): Promise<unknown> {
+  ): Promise<{ message: string; user: { id: number; username: string } }> {
     return this.http.post('/api/admin/users/reset-password', {
       usernameOrUserId,
       newTemporaryPassword,
@@ -83,40 +88,62 @@ export class AdminApi {
     return this.http.delete(`/api/admin/employees/${employeeId}/skills/${skillId}`);
   }
 
-  createProject(body: Record<string, unknown>): Promise<ProjectListItem> {
-    return this.http.post<ProjectListItem>('/api/admin/projects', body);
+  async createProject(body: Record<string, unknown>): Promise<ProjectListItem> {
+    const result = await this.http.post<{ message: string; project: ProjectListItem }>(
+      '/api/admin/projects',
+      body,
+    );
+    return result.project;
   }
 
   listProjects(): Promise<{ projects: ProjectListItem[] }> {
     return this.http.get('/api/admin/projects');
   }
 
-  updateProject(projectId: number, body: Record<string, unknown>): Promise<ProjectListItem> {
-    return this.http.patch<ProjectListItem>(`/api/admin/projects/${projectId}`, body);
+  async updateProject(
+    projectId: number,
+    body: Record<string, unknown>,
+  ): Promise<ProjectListItem> {
+    const result = await this.http.patch<{ message: string; project: ProjectListItem }>(
+      `/api/admin/projects/${projectId}`,
+      body,
+    );
+    return result.project;
   }
 
   listMilestones(projectId: number): Promise<MilestoneListResult> {
     return this.http.get<MilestoneListResult>(`/api/admin/projects/${projectId}/milestones`);
   }
 
-  createMilestone(projectId: number, body: Record<string, unknown>): Promise<MilestoneView> {
-    return this.http.post(`/api/admin/projects/${projectId}/milestones`, body);
+  async createMilestone(
+    projectId: number,
+    body: Record<string, unknown>,
+  ): Promise<MilestoneView> {
+    const result = await this.http.post<{ message: string; milestone: MilestoneView }>(
+      `/api/admin/projects/${projectId}/milestones`,
+      body,
+    );
+    return result.milestone;
   }
 
-  updateMilestone(
+  async updateMilestone(
     projectId: number,
     milestoneId: number,
     body: Record<string, unknown>,
   ): Promise<MilestoneView> {
-    return this.http.patch(
+    const result = await this.http.patch<{ message: string; milestone: MilestoneView }>(
       `/api/admin/projects/${projectId}/milestones/${milestoneId}`,
       body,
     );
+    return result.milestone;
   }
 
-  listAllocations(filters?: { employeeId?: number; projectId?: number }): Promise<AllocationListResult> {
+  listAllocations(filters?: {
+    resourceProfileId?: number;
+    projectId?: number;
+  }): Promise<AllocationListResult> {
     return this.http.get<AllocationListResult>('/api/admin/allocations', {
-      employeeId: filters?.employeeId,
+      resourceProfileId: filters?.resourceProfileId,
       projectId: filters?.projectId,
     });
   }

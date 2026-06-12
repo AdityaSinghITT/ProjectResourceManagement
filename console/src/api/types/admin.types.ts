@@ -59,13 +59,26 @@ export interface ProjectListItem {
 
 export interface AllocationView {
   id: number;
-  employeeId: number;
+  resourceProfileId: number;
+  employeeId?: number;
   employeeName: string;
   projectId: number;
   projectName: string;
   utilizationPercent: number;
   fromDate: string;
   toDate: string;
+}
+
+export interface DeactivationPreviewEmployee {
+  id: number;
+  userId: number;
+  fullName: string;
+  department: string | null;
+  designation?: string | null;
+  resourceStatus: string;
+  status?: string;
+  isActive: boolean;
+  managerName?: string | null;
 }
 
 export interface AllocationListResult {
@@ -78,11 +91,13 @@ export interface AllocationListResult {
 export interface SystemConfigView {
   llmProvider: string;
   llmApiKeyMasked: string;
+  llmBaseUrl: string | null;
+  llmModel: string | null;
   schedulerIntervalHours: number;
   maxWeeklyHours: number;
 }
 
 export interface DeactivationPreview {
-  employee: EmployeeListItem;
+  employee: DeactivationPreviewEmployee;
   activeAllocations: AllocationView[];
 }

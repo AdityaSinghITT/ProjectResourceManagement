@@ -1,4 +1,4 @@
-import { IEmployeeRepository } from '../../domain/interfaces/IEmployeeRepository';
+import { IResourceProfileRepository } from '../../domain/interfaces/IResourceProfileRepository';
 import { IProjectRepository } from '../../domain/interfaces/IProjectRepository';
 
 export interface ManagerDeactivationEffects {
@@ -7,11 +7,12 @@ export interface ManagerDeactivationEffects {
 }
 
 export async function applyManagerDeactivationEffects(
-  employeeRepository: IEmployeeRepository,
+  resourceProfileRepository: IResourceProfileRepository,
   projectRepository: IProjectRepository,
   managerUserId: number,
 ): Promise<ManagerDeactivationEffects> {
-  const clearedTeamMembers = await employeeRepository.clearReportingManagerForTeam(managerUserId);
+  const clearedTeamMembers =
+    await resourceProfileRepository.clearReportingManagerForTeam(managerUserId);
   const projectsPutOnHold = await projectRepository.holdActiveProjectsByManager(managerUserId);
 
   return { clearedTeamMembers, projectsPutOnHold };

@@ -106,20 +106,16 @@ export class AuthService {
     return { token, user };
   }
 
-  private toUserProfile(user: {
-    id: number;
-    username: string;
-    email: string;
-    fullName: string;
-    role: UserProfile['role'];
-    forcePasswordChange: boolean;
-  }): UserProfile {
+  private toUserProfile(user: UserProfile): UserProfile {
     return {
       id: user.id,
       username: user.username,
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      department: user.department,
+      designation: user.designation,
+      permissions: user.permissions,
       forcePasswordChange: user.forcePasswordChange,
     };
   }
