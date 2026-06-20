@@ -1,0 +1,327 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Department {
+  ENGINEERING
+  QUALITY_ASSURANCE
+  DEVOPS
+  PRODUCT
+  HUMAN_RESOURCES
+}
+
+enum Designation {
+  SOFTWARE_ENGINEER
+  SENIOR_SOFTWARE_ENGINEER
+  TEAM_LEAD
+  PROJECT_MANAGER
+  QA_ENGINEER
+  DEVOPS_ENGINEER
+  BUSINESS_ANALYST
+}
+
+enum ResourceStatus {
+  BENCH
+  ALLOCATED
+}
+
+enum SkillCategory {
+  BACKEND
+  FRONTEND
+  DEVOPS
+  QA
+  OTHER
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+enum MilestoneStatus {
+  DONE
+  IN_PROGRESS
+  NOT_STARTED
+}
+
+enum TimesheetStatus {
+  SUBMITTED
+  MISSED
+}
+
+enum PermissionResource {
+  AUTH
+  USERS
+  RESOURCES
+  PROJECTS
+  ALLOCATIONS
+  DASHBOARD
+  TIMESHEETS
+  SYSTEM_CONFIG
+  ACTIVITY_TAGS
+}
+
+enum PermissionAction {
+  LOGIN
+  CHANGE_PASSWORD
+  CREATE
+  READ
+  LIST
+  UPDATE
+  DELETE
+  SUBMIT
+  VIEW_TEAM
+}
+
+enum LlmProvider {
+  GEMINI
+  GROQ
+  OLLAMA
+}
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  roleName  String   @unique @map("role_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int                @id @default(autoincrement())
+  resource    PermissionResource
+  action      PermissionAction
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int @map("role_id")
+  permissionId Int @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id                  Int          @id @default(autoincrement())
+  username            String       @unique
+  email               String       @unique
+  passwordHash        String       @map("password_hash")
+  fullName            String       @map("full_name")
+  department          Department?
+  designation         Designation?
+  isActive            Boolean      @default(true) @map("is_active")
+  forcePasswordChange Boolean      @default(false) @map("force_password_change")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  resourceProfile        ResourceProfile?  @relation("UserResourceProfile")
+  managedResourceProfiles ResourceProfile[] @relation("ResourceProfileManager")
+  managedProjects        Project[]         @relation("ProjectManager")
+  userRoles              UserRole[]
+  userSkills             UserSkill[]
+  assignedUserRoles      UserRole[]        @relation("UserRoleAssignedBy")
+
+  @@map("users")
+}
+
+model UserRole {
+  userId           Int      @map("user_id")
+  roleId           Int      @map("role_id")
+  isPrimary        Boolean  @default(true) @map("is_primary")
+  assignedByUserId Int?     @map("assigned_by_user_id")
+  assignedAt       DateTime @default(now()) @map("assigned_at")
+
+  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedBy User? @relation("UserRoleAssignedBy", fields: [assignedByUserId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model ResourceProfile {
+  id             Int            @id @default(autoincrement())
+  userId         Int            @unique @map("user_id")
+  managerId      Int?           @map("manager_id")
+  resourceStatus ResourceStatus @default(BENCH) @map("resource_status")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  user        User         @relation("UserResourceProfile", fields: [userId], references: [id], onDelete: Cascade)
+  manager     User?        @relation("ResourceProfileManager", fields: [managerId], references: [id])
+  allocations Allocation[]
+  timesheets  Timesheet[]
+
+  @@map("resource_profiles")
+}
+
+model Skill {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  userSkills UserSkill[]
+
+  @@map("skills")
+}
+
+model UserSkill {
+  id          Int              @id @default(autoincrement())
+  userId      Int              @map("user_id")
+  skillId     Int              @map("skill_id")
+  category    SkillCategory
+  proficiency ProficiencyLevel
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@map("user_skills")
+}
+
+model Project {
+  id               Int           @id @default(autoincrement())
+  name             String
+  description      String
+  startDate        DateTime      @map("start_date") @db.Date
+  endDate          DateTime      @map("end_date") @db.Date
+  status           ProjectStatus
+  managerId        Int           @map("manager_id")
+  totalStoryPoints Int           @default(0) @map("total_story_points")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  manager          User             @relation("ProjectManager", fields: [managerId], references: [id])
+  milestones       Milestone[]
+  allocations      Allocation[]
+  timesheetEntries TimesheetEntry[]
+
+  @@map("projects")
+}
+
+model Milestone {
+  id          Int             @id @default(autoincrement())
+  projectId   Int             @map("project_id")
+  title       String
+  dueDate     DateTime        @map("due_date") @db.Date
+  status      MilestoneStatus
+  storyPoints Int             @default(0) @map("story_points")
+  sortOrder   Int             @default(0) @map("sort_order")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
+}
+
+model Allocation {
+  id                 Int      @id @default(autoincrement())
+  resourceProfileId  Int      @map("resource_profile_id")
+  projectId          Int      @map("project_id")
+  utilizationPercent Int      @map("utilization_percent")
+  fromDate           DateTime @map("from_date") @db.Date
+  toDate             DateTime @map("to_date") @db.Date
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  resourceProfile ResourceProfile @relation(fields: [resourceProfileId], references: [id])
+  project         Project         @relation(fields: [projectId], references: [id])
+
+  @@map("allocations")
+}
+
+model Timesheet {
+  id                Int             @id @default(autoincrement())
+  resourceProfileId Int             @map("resource_profile_id")
+  weekStart         DateTime        @map("week_start") @db.Date
+  status            TimesheetStatus
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  resourceProfile ResourceProfile  @relation(fields: [resourceProfileId], references: [id])
+  entries         TimesheetEntry[]
+
+  @@unique([resourceProfileId, weekStart])
+  @@map("timesheets")
+}
+
+model TimesheetEntry {
+  id          Int      @id @default(autoincrement())
+  timesheetId Int      @map("timesheet_id")
+  projectId   Int      @map("project_id")
+  hours       Decimal  @db.Decimal(5, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  timesheet Timesheet           @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  project   Project             @relation(fields: [projectId], references: [id])
+  tags      TimesheetEntryTag[]
+
+  @@unique([timesheetId, projectId])
+  @@map("timesheet_entries")
+}
+
+model ActivityTag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  timesheetEntries TimesheetEntryTag[]
+
+  @@map("activity_tags")
+}
+
+model TimesheetEntryTag {
+  id               Int     @id @default(autoincrement())
+  timesheetEntryId Int     @map("timesheet_entry_id")
+  activityTagId    Int     @map("activity_tag_id")
+  customText       String? @map("custom_text")
+
+  timesheetEntry TimesheetEntry @relation(fields: [timesheetEntryId], references: [id], onDelete: Cascade)
+  activityTag    ActivityTag    @relation(fields: [activityTagId], references: [id])
+
+  @@unique([timesheetEntryId, activityTagId])
+  @@map("timesheet_entry_tags")
+}
+
+model SystemConfig {
+  id                     Int         @id @default(1)
+  llmProvider            LlmProvider @default(OLLAMA) @map("llm_provider")
+  llmApiKey              String?     @map("llm_api_key")
+  llmBaseUrl             String?     @map("llm_base_url")
+  llmModel               String?     @map("llm_model")
+  schedulerIntervalHours Int         @default(4) @map("scheduler_interval_hours")
+  maxWeeklyHours         Int         @default(40) @map("max_weekly_hours")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
+
+  @@map("system_config")
+}
