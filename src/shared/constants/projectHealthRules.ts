@@ -1,0 +1,5 @@
+export const ProjectHealthRules = {
+  LOW_HOURS_THRESHOLD_PERCENT: 50,
+  PARTIAL_HOURS_THRESHOLD_PERCENT: 80,
+  MILESTONE_DUE_SOON_DAYS: 7,
+} as const;

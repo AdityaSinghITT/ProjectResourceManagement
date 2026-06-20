@@ -1,0 +1,4 @@
+export const AiValidationLimits = {
+  MIN_SKILL_MATCH_REQUIREMENT_LENGTH: 3,
+  MAX_TEAM_BUILDER_REQUIREMENT_LENGTH: 1000,
+} as const;

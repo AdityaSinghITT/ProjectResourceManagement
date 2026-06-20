@@ -1,0 +1,19 @@
+{
+  "name": "prm-tool-console",
+  "version": "1.0.0",
+  "description": "PRM Tool — thin REST console client",
+  "private": true,
+  "scripts": {
+    "dev": "nodemon",
+    "start": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
