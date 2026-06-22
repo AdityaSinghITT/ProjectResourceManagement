@@ -18,6 +18,19 @@ export const SubmitTimesheetScreen: Screen = {
     const user = context.session.getUser();
     console.log(`Employee  : ${user?.fullName ?? 'Unknown'}`);
 
+    try {
+      const reminder = await context.employee.getReminder();
+      if (reminder.submissionFrozen) {
+        console.log(`\n${reminder.message ?? 'Timesheet submission is frozen.'}\n`);
+        await context.prompt.pause();
+        return { type: 'back' };
+      }
+    } catch (error) {
+      printApiError(error);
+      await context.prompt.pause();
+      return { type: 'back' };
+    }
+
     const weekInput = await context.prompt.ask(
       'Week Start: Enter date (DD-MM-YYYY) or press Enter for current week Monday\n> ',
     );

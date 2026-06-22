@@ -1,4 +1,5 @@
 import { Department, Designation, ProficiencyLevel, ResourceStatus, SkillCategory } from '@prisma/client';
+import { ResourceContactView } from '../types/timesheetCompliance.types';
 import { ActiveAllocationPreview, EmployeeListResult, EmployeeSkillView } from '../types/admin.types';
 
 export interface CreateResourceProfileInput {
@@ -33,6 +34,8 @@ export interface ResourceProfileRecord {
   isActive: boolean;
   fullName: string;
   managerName: string | null;
+  timesheetSubmissionFrozen: boolean;
+  timesheetFrozenForWeekStart: string | null;
 }
 
 export interface AssignManagerInput {
@@ -73,4 +76,11 @@ export interface IResourceProfileRepository {
   findTeamMember(managerUserId: number, resourceProfileId: number): Promise<TeamMemberRecord | null>;
   listTeamMembers(managerUserId: number): Promise<TeamMemberRecord[]>;
   listOrganizationResources(): Promise<TeamMemberRecord[]>;
+  findResourceContact(resourceProfileId: number): Promise<ResourceContactView | null>;
+  setTimesheetFrozen(
+    resourceProfileId: number,
+    frozen: boolean,
+    frozenForWeekStart?: Date | null,
+  ): Promise<void>;
+  listActiveResources(): Promise<TeamMemberRecord[]>;
 }

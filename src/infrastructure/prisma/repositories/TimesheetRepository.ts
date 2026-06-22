@@ -2,6 +2,7 @@ import { Prisma, TimesheetStatus } from '@prisma/client';
 import { getWeekEnd } from '../../../application/utils/week.utils';
 import {
   CreateMissedTimesheetInput,
+  CreatePendingTimesheetInput,
   CreateTimesheetInput,
   ITimesheetRepository,
 } from '../../../domain/interfaces/ITimesheetRepository';
@@ -161,6 +162,79 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
     return mapTimesheetWeekView(timesheet);
   }
 
+  async createPendingTimesheet(input: CreatePendingTimesheetInput): Promise<TimesheetWeekView> {
+    const timesheet = await prisma.timesheet.create({
+      data: {
+        resourceProfileId: input.resourceProfileId,
+        weekStart: input.weekStart,
+        status: TimesheetStatus.PENDING,
+        entries: {
+          create: input.projectIds.map((projectId) => ({
+            projectId,
+            hours: 0,
+          })),
+        },
+      },
+      include: timesheetInclude,
+    });
+
+    return mapTimesheetWeekView(timesheet);
+  }
+
+  async promotePendingToMissed(
+    resourceProfileId: number,
+    weekStart: Date,
+  ): Promise<TimesheetWeekView> {
+    const existing = await prisma.timesheet.findUnique({
+      where: {
+        resourceProfileId_weekStart: {
+          resourceProfileId,
+          weekStart,
+        },
+      },
+    });
+
+    if (existing?.status === TimesheetStatus.MISSED) {
+      const timesheet = await prisma.timesheet.findUniqueOrThrow({
+        where: { id: existing.id },
+        include: timesheetInclude,
+      });
+      return mapTimesheetWeekView(timesheet);
+    }
+
+    if (existing?.status === TimesheetStatus.PENDING) {
+      const updated = await prisma.timesheet.update({
+        where: { id: existing.id },
+        data: { status: TimesheetStatus.MISSED },
+        include: timesheetInclude,
+      });
+      return mapTimesheetWeekView(updated);
+    }
+
+    return this.createMissedTimesheet({
+      resourceProfileId,
+      weekStart,
+      projectIds: existing
+        ? (
+            await prisma.timesheetEntry.findMany({
+              where: { timesheetId: existing.id },
+              select: { projectId: true },
+            })
+          ).map((entry) => entry.projectId)
+        : [],
+    });
+  }
+
+  async deleteTimesheetForWeek(resourceProfileId: number, weekStart: Date): Promise<void> {
+    await prisma.timesheet.deleteMany({
+      where: {
+        resourceProfileId,
+        weekStart,
+        status: { in: [TimesheetStatus.PENDING, TimesheetStatus.MISSED] },
+      },
+    });
+  }
+
   async listHistoryByResourceProfile(resourceProfileId: number): Promise<TimesheetHistoryResult> {
     const timesheets = await prisma.timesheet.findMany({
       where: { resourceProfileId },
@@ -182,6 +256,7 @@ export class PrismaTimesheetRepository implements ITimesheetRepository {
       timesheets: mapped,
       summary: {
         submitted: mapped.filter((item) => item.status === TimesheetStatus.SUBMITTED).length,
+        pending: mapped.filter((item) => item.status === TimesheetStatus.PENDING).length,
         missed: mapped.filter((item) => item.status === TimesheetStatus.MISSED).length,
       },
     };

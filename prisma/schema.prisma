@@ -59,7 +59,17 @@ enum MilestoneStatus {
 
 enum TimesheetStatus {
   SUBMITTED
+  PENDING
   MISSED
+}
+
+enum TimesheetComplianceState {
+  OPEN
+  REMINDER_1_SENT
+  REMINDER_2_SENT
+  FROZEN
+  RESOLVED
+  CANCELLED
 }
 
 enum PermissionResource {
@@ -165,17 +175,21 @@ model UserRole {
 }
 
 model ResourceProfile {
-  id             Int            @id @default(autoincrement())
-  userId         Int            @unique @map("user_id")
-  managerId      Int?           @map("manager_id")
-  resourceStatus ResourceStatus @default(BENCH) @map("resource_status")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id                          Int            @id @default(autoincrement())
+  userId                      Int            @unique @map("user_id")
+  managerId                   Int?           @map("manager_id")
+  resourceStatus              ResourceStatus @default(BENCH) @map("resource_status")
+  timesheetSubmissionFrozen   Boolean        @default(false) @map("timesheet_submission_frozen")
+  timesheetFrozenAt           DateTime?      @map("timesheet_frozen_at")
+  timesheetFrozenForWeekStart DateTime?      @map("timesheet_frozen_for_week_start") @db.Date
+  createdAt                   DateTime       @default(now()) @map("created_at")
+  updatedAt                   DateTime       @updatedAt @map("updated_at")
 
-  user        User         @relation("UserResourceProfile", fields: [userId], references: [id], onDelete: Cascade)
-  manager     User?        @relation("ResourceProfileManager", fields: [managerId], references: [id])
-  allocations Allocation[]
-  timesheets  Timesheet[]
+  user            User                      @relation("UserResourceProfile", fields: [userId], references: [id], onDelete: Cascade)
+  manager         User?                     @relation("ResourceProfileManager", fields: [managerId], references: [id])
+  allocations     Allocation[]
+  timesheets      Timesheet[]
+  complianceCases TimesheetComplianceCase[]
 
   @@map("resource_profiles")
 }
@@ -218,10 +232,11 @@ model Project {
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
 
-  manager          User             @relation("ProjectManager", fields: [managerId], references: [id])
+  manager          User                      @relation("ProjectManager", fields: [managerId], references: [id])
   milestones       Milestone[]
   allocations      Allocation[]
   timesheetEntries TimesheetEntry[]
+  riskNotifications ProjectRiskNotification[]
 
   @@map("projects")
 }
@@ -271,6 +286,35 @@ model Timesheet {
 
   @@unique([resourceProfileId, weekStart])
   @@map("timesheets")
+}
+
+model TimesheetComplianceCase {
+  id                Int                      @id @default(autoincrement())
+  resourceProfileId Int                      @map("resource_profile_id")
+  weekStart         DateTime                 @map("week_start") @db.Date
+  state             TimesheetComplianceState @default(OPEN)
+  reminder1SentAt   DateTime?                @map("reminder_1_sent_at")
+  reminder2SentAt   DateTime?                @map("reminder_2_sent_at")
+  frozenAt          DateTime?                @map("frozen_at")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  resourceProfile ResourceProfile @relation(fields: [resourceProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceProfileId, weekStart])
+  @@map("timesheet_compliance_cases")
+}
+
+model ProjectRiskNotification {
+  id                 Int      @id @default(autoincrement())
+  projectId          Int      @map("project_id")
+  evaluatedWeekStart DateTime @map("evaluated_week_start") @db.Date
+  sentAt             DateTime @default(now()) @map("sent_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, evaluatedWeekStart])
+  @@map("project_risk_notifications")
 }
 
 model TimesheetEntry {

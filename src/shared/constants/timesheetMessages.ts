@@ -17,4 +17,8 @@ export const TimesheetMessages = {
   CUSTOM_TEXT_REQUIRED_FOR_OTHER: 'customText is required when activity tag is "Other"',
   CUSTOM_TEXT_NOT_ALLOWED: 'customText is only allowed for the "Other" activity tag',
   EMPLOYEE_NOT_IN_TEAM: 'Employee is not in your team',
+  SUBMISSION_FROZEN:
+    'Timesheet submission is frozen. Contact your reporting manager to restore access.',
+  NOT_FROZEN: 'Employee timesheet submission is not frozen',
+  RESTORE_SUCCESS: 'Timesheet submission access restored successfully',
 } as const;

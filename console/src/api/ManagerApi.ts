@@ -67,4 +67,10 @@ export class ManagerApi {
   projectRiskSummary(projectId: number): Promise<AiRiskSummaryResult> {
     return this.http.post<AiRiskSummaryResult>(`/api/manager/projects/${projectId}/ai-risk-summary`);
   }
+
+  restoreTimesheetAccess(employeeId: number): Promise<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `/api/manager/employees/${employeeId}/restore-timesheet-access`,
+    );
+  }
 }

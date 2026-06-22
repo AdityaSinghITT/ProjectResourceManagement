@@ -17,6 +17,7 @@ import {
 } from '../../../domain/types/admin.types';
 import { RoleNames } from '../../../shared/constants/roleNames';
 import { formatDateOnly, todayDateOnly } from '../../../shared/utils/date.utils';
+import { ResourceContactView } from '../../../domain/types/timesheetCompliance.types';
 
 const profileInclude = {
   user: { select: { fullName: true, department: true, designation: true, isActive: true } },
@@ -28,6 +29,8 @@ function mapResourceProfileRecord(profile: {
   userId: number;
   managerId: number | null;
   resourceStatus: ResourceStatus;
+  timesheetSubmissionFrozen: boolean;
+  timesheetFrozenForWeekStart: Date | null;
   user: {
     fullName: string;
     department: ResourceProfileRecord['department'];
@@ -46,6 +49,10 @@ function mapResourceProfileRecord(profile: {
     isActive: profile.user.isActive,
     fullName: profile.user.fullName,
     managerName: profile.manager?.fullName ?? null,
+    timesheetSubmissionFrozen: profile.timesheetSubmissionFrozen,
+    timesheetFrozenForWeekStart: profile.timesheetFrozenForWeekStart
+      ? formatDateOnly(profile.timesheetFrozenForWeekStart)
+      : null,
   };
 }
 
@@ -365,5 +372,52 @@ export class PrismaResourceProfileRepository implements IResourceProfileReposito
     });
 
     return profiles.map(mapTeamMember);
+  }
+
+  async listActiveResources(): Promise<TeamMemberRecord[]> {
+    return this.listOrganizationResources();
+  }
+
+  async findResourceContact(resourceProfileId: number): Promise<ResourceContactView | null> {
+    const profile = await prisma.resourceProfile.findUnique({
+      where: { id: resourceProfileId },
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        manager: { select: { id: true, fullName: true, email: true } },
+      },
+    });
+
+    if (!profile) {
+      return null;
+    }
+
+    return {
+      resourceProfileId: profile.id,
+      userId: profile.userId,
+      fullName: profile.user.fullName,
+      email: profile.user.email,
+      managerId: profile.managerId,
+      managerName: profile.manager?.fullName ?? null,
+      managerEmail: profile.manager?.email ?? null,
+      timesheetSubmissionFrozen: profile.timesheetSubmissionFrozen,
+      timesheetFrozenForWeekStart: profile.timesheetFrozenForWeekStart
+        ? formatDateOnly(profile.timesheetFrozenForWeekStart)
+        : null,
+    };
+  }
+
+  async setTimesheetFrozen(
+    resourceProfileId: number,
+    frozen: boolean,
+    frozenForWeekStart?: Date | null,
+  ): Promise<void> {
+    await prisma.resourceProfile.update({
+      where: { id: resourceProfileId },
+      data: {
+        timesheetSubmissionFrozen: frozen,
+        timesheetFrozenAt: frozen ? new Date() : null,
+        timesheetFrozenForWeekStart: frozen ? (frozenForWeekStart ?? null) : null,
+      },
+    });
   }
 }

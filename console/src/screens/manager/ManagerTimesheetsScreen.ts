@@ -43,7 +43,18 @@ export const ManagerTimesheetsScreen: Screen = {
         );
       }
 
-      const choice = await context.prompt.ask('\n[V] View employee timesheet detail     [B] Back\nChoice: ');
+      const choice = await context.prompt.ask(
+        '\n[V] View employee timesheet detail     [R] Restore frozen access     [B] Back\nChoice: ',
+      );
+      if (choice.toUpperCase() === 'R') {
+        const resourceProfileId = Number(
+          await context.prompt.ask('Enter Resource profile ID to restore: '),
+        );
+        const restoreResult = await context.manager.restoreTimesheetAccess(resourceProfileId);
+        console.log(`\n${restoreResult.message}`);
+        await context.prompt.pause();
+        return { type: 'stay' };
+      }
       if (choice.toUpperCase() === 'V') {
         const resourceProfileId = Number(
           await context.prompt.ask('Enter Resource profile ID (from table ID column): '),

@@ -17,7 +17,7 @@ export interface TimesheetHistoryItem {
   id: number;
   weekStart: string;
   weekEnd: string;
-  status: 'SUBMITTED' | 'MISSED';
+  status: 'SUBMITTED' | 'PENDING' | 'MISSED';
   totalHours: number;
 }
 
@@ -25,6 +25,7 @@ export interface TimesheetHistoryResult {
   timesheets: TimesheetHistoryItem[];
   summary: {
     submitted: number;
+    pending: number;
     missed: number;
   };
 }
@@ -56,6 +57,8 @@ export interface TimesheetReminderResult {
   showReminder: boolean;
   missingWeekStart: string | null;
   message: string | null;
+  submissionFrozen: boolean;
+  frozenForWeekStart: string | null;
 }
 
 export interface SubmitTimesheetEntryTagInput {

@@ -56,6 +56,9 @@ describe('ProjectService', () => {
     findTeamMember: jest.fn(),
     listTeamMembers: jest.fn(),
     listOrganizationResources: jest.fn(),
+    findResourceContact: jest.fn(),
+    setTimesheetFrozen: jest.fn(),
+    listActiveResources: jest.fn(),
   };
 
   const service = new ProjectService(projectRepository, userRepository, resourceProfileRepository);

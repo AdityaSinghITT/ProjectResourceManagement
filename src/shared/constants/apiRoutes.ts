@@ -45,6 +45,7 @@ export const ManagerRoutes = {
   ALLOCATION_END: '/allocations/:id/end',
   TIMESHEETS: '/timesheets',
   TIMESHEET_EMPLOYEE: '/timesheets/:employeeId',
+  TIMESHEET_RESTORE: '/employees/:employeeId/restore-timesheet-access',
   AI_SKILL_MATCH: '/ai/skill-match',
   AI_TEAM_BUILDER: '/ai/team-builder',
   ALLOCATIONS_AI_MATCH: '/allocations/ai-match',

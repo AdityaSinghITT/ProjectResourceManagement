@@ -440,7 +440,17 @@ The scheduler is a **background loop inside the API process** (not a separate OS
 ### What each run does
 
 1. **Recompute `resource_status`** (`BENCH` / `ALLOCATED`) for every active resource profile using current allocations ([`EmployeeStatusService`](src/application/services/EmployeeStatusService.ts)).
-2. **Flag missed timesheets** ([`MissedTimesheetService`](src/application/services/MissedTimesheetService.ts)): for the last 8 **completed** weeks, if a resource had allocations but no timesheet row, insert `status: MISSED` with zero-hour entries per project.
+2. **Timesheet compliance** ([`TimesheetComplianceService`](src/application/services/TimesheetComplianceService.ts)): on working days (Mon–Fri), detect prior-week missing timesheets → Reminder 1 email → Reminder 2 → global freeze + `MISSED` + notify employee and manager.
+3. **Flag older missed timesheets** ([`MissedTimesheetService`](src/application/services/MissedTimesheetService.ts)): for completed weeks **older than prior week**, auto-insert `MISSED` if allocated but no submission.
+4. **Project at-risk emails** ([`ProjectRiskNotificationService`](src/application/services/ProjectRiskNotificationService.ts)): email project managers when health is `AT_RISK` (once per evaluation week), with AI summary and skill suggestions when LLM is configured.
+
+### Email (Mailtrap)
+
+Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and optional `EMAIL_FROM` in `.env`. If SMTP is unset, emails are logged to the API console (`ConsoleEmailSender`).
+
+### Manager restore
+
+`POST /api/manager/employees/{employeeId}/restore-timesheet-access` — reporting manager clears freeze and deletes the frozen week's `PENDING`/`MISSED` row so the employee can backfill.
 
 ### Key files
 
@@ -448,7 +458,11 @@ The scheduler is a **background loop inside the API process** (not a separate OS
 |------|------|
 | [`src/infrastructure/scheduler/startScheduler.ts`](src/infrastructure/scheduler/startScheduler.ts) | Wires repositories + services, starts runner |
 | [`src/infrastructure/scheduler/SchedulerRunner.ts`](src/infrastructure/scheduler/SchedulerRunner.ts) | Interval + `runOnce` orchestration |
-| [`src/application/services/MissedTimesheetService.ts`](src/application/services/MissedTimesheetService.ts) | MISSED detection logic |
+| [`src/application/services/TimesheetComplianceService.ts`](src/application/services/TimesheetComplianceService.ts) | Reminder/freeze workflow |
+| [`src/application/services/TimesheetRestoreService.ts`](src/application/services/TimesheetRestoreService.ts) | Manager unfreeze + backfill |
+| [`src/application/services/ProjectRiskNotificationService.ts`](src/application/services/ProjectRiskNotificationService.ts) | AT_RISK PM emails |
+| [`src/infrastructure/email/createEmailSender.ts`](src/infrastructure/email/createEmailSender.ts) | Mailtrap / console fallback |
+| [`src/application/services/MissedTimesheetService.ts`](src/application/services/MissedTimesheetService.ts) | Historical MISSED detection |
 | [`src/shared/constants/schedulerConfig.ts`](src/shared/constants/schedulerConfig.ts) | Lookback weeks (8) |
 
 ### Logs

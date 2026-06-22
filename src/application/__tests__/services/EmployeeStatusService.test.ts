@@ -24,6 +24,9 @@ describe('EmployeeStatusService', () => {
     findTeamMember: jest.fn(),
     listTeamMembers: jest.fn(),
     listOrganizationResources: jest.fn(),
+    findResourceContact: jest.fn(),
+    setTimesheetFrozen: jest.fn(),
+    listActiveResources: jest.fn(),
   };
 
   const allocationRepository: jest.Mocked<IAllocationRepository> = {

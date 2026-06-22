@@ -31,6 +31,10 @@ export class MissedTimesheetService {
     let createdCount = 0;
 
     for (const weekStart of completedWeekStarts) {
+      if (weekStart.getTime() === addDays(currentWeekStart, -7).getTime()) {
+        continue;
+      }
+
       for (const employee of employees) {
         const created = await this.flagMissedForResourceWeek(employee.id, weekStart);
         if (created) {

@@ -36,4 +36,11 @@ export const env = {
   llmApiKey: optionalEnv(EnvKeys.LLM_API_KEY),
   llmModel: optionalEnv(EnvKeys.LLM_MODEL),
   llmProvider: parseLlmProvider(process.env[EnvKeys.LLM_PROVIDER]),
+  smtpHost: optionalEnv(EnvKeys.SMTP_HOST),
+  smtpPort: process.env[EnvKeys.SMTP_PORT]
+    ? parseInt(process.env[EnvKeys.SMTP_PORT]!, 10)
+    : null,
+  smtpUser: optionalEnv(EnvKeys.SMTP_USER),
+  smtpPass: optionalEnv(EnvKeys.SMTP_PASS),
+  emailFrom: optionalEnv(EnvKeys.EMAIL_FROM),
 };

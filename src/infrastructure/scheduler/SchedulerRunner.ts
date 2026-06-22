@@ -2,6 +2,8 @@ import { EmployeeStatusService } from '../../application/services/EmployeeStatus
 import { MissedTimesheetService } from '../../application/services/MissedTimesheetService';
 import { ISystemConfigRepository } from '../../domain/interfaces/ISystemConfigRepository';
 import { IResourceProfileRepository } from '../../domain/interfaces/IResourceProfileRepository';
+import { ProjectRiskNotificationService } from '../../application/services/ProjectRiskNotificationService';
+import { TimesheetComplianceService } from '../../application/services/TimesheetComplianceService';
 import { appLogger } from '../../shared/logger/appLogger';
 import { todayDateOnly } from '../../shared/utils/date.utils';
 
@@ -15,6 +17,8 @@ export class SchedulerRunner {
   constructor(
     private readonly employeeStatusService: EmployeeStatusService,
     private readonly missedTimesheetService: MissedTimesheetService,
+    private readonly timesheetComplianceService: TimesheetComplianceService,
+    private readonly projectRiskNotificationService: ProjectRiskNotificationService,
     private readonly systemConfigRepository: ISystemConfigRepository,
     private readonly resourceProfileRepository: IResourceProfileRepository,
   ) {}
@@ -54,11 +58,15 @@ export class SchedulerRunner {
         await this.employeeStatusService.recomputeStatus(employee.id, asOfDate);
       }
 
+      const complianceResult = await this.timesheetComplianceService.runDailyCompliance(asOfDate);
       const missedResult = await this.missedTimesheetService.flagMissedTimesheets(asOfDate);
+      const riskResult = await this.projectRiskNotificationService.run(asOfDate);
 
       appLogger.info('Scheduler run completed', {
         resourcesUpdated: employees.length,
+        compliance: complianceResult,
         missedTimesheetsCreated: missedResult.createdCount,
+        projectRiskEmails: riskResult.emailsSent,
       });
     } catch (error) {
       appLogger.error('Scheduler run failed', { error });
