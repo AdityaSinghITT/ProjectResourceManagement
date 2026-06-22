@@ -9,6 +9,11 @@ export const EnvKeys = {
   LLM_API_KEY: 'LLM_API_KEY',
   LLM_MODEL: 'LLM_MODEL',
   LLM_PROVIDER: 'LLM_PROVIDER',
+  SMTP_HOST: 'SMTP_HOST',
+  SMTP_PORT: 'SMTP_PORT',
+  SMTP_USER: 'SMTP_USER',
+  SMTP_PASS: 'SMTP_PASS',
+  EMAIL_FROM: 'EMAIL_FROM',
 } as const;
 
 export const EnvDefaults = {

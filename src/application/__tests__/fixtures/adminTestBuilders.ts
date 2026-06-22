@@ -118,5 +118,7 @@ export function buildActiveManagerProfile(userId: number) {
     isActive: true,
     fullName: 'Manager User',
     managerName: null,
+    timesheetSubmissionFrozen: false,
+    timesheetFrozenForWeekStart: null,
   };
 }

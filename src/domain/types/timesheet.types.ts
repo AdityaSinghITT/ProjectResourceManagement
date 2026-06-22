@@ -41,8 +41,17 @@ export interface TimesheetHistoryResult {
   timesheets: TimesheetHistoryItem[];
   summary: {
     submitted: number;
+    pending: number;
     missed: number;
   };
+}
+
+export interface TimesheetReminderResult {
+  showReminder: boolean;
+  missingWeekStart: string | null;
+  message: string | null;
+  submissionFrozen: boolean;
+  frozenForWeekStart: string | null;
 }
 
 export interface EmployeeTimesheetAllocation {
@@ -58,12 +67,6 @@ export interface EmployeeAllocationsResult {
   weekStart: string;
   weekEnd: string;
   allocations: EmployeeTimesheetAllocation[];
-}
-
-export interface TimesheetReminderResult {
-  showReminder: boolean;
-  missingWeekStart: string | null;
-  message: string | null;
 }
 
 export interface SubmitTimesheetEntryTagInput {

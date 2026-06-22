@@ -11,8 +11,8 @@ export const ChangePasswordScreen: Screen = {
     drawTitle('CHANGE PASSWORD');
     drawSubtitle('You must set a new password to continue.\n');
 
-    const newPassword = await context.prompt.ask('New Password        : ');
-    const confirmPassword = await context.prompt.ask('Confirm Password    : ');
+    const newPassword = await context.prompt.askHidden('New Password        : ');
+    const confirmPassword = await context.prompt.askHidden('Confirm Password    : ');
 
     if (!newPassword || !confirmPassword) {
       console.log('\nBoth password fields are required.');

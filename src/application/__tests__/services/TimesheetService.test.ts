@@ -22,6 +22,8 @@ describe('TimesheetService', () => {
     isActive: true,
     fullName: 'Riya Patel',
     managerName: 'Manager One',
+    timesheetSubmissionFrozen: false,
+    timesheetFrozenForWeekStart: null,
   };
 
   const weekStart = '2026-06-01';
@@ -35,6 +37,9 @@ describe('TimesheetService', () => {
     listRecentActivityTags: jest.fn(),
     listTeamEntriesForWeek: jest.fn(),
     listProjectHoursByResourceProfileForWeek: jest.fn(),
+    createPendingTimesheet: jest.fn(),
+    promotePendingToMissed: jest.fn(),
+    deleteTimesheetForWeek: jest.fn(),
   };
 
   const allocationRepository: jest.Mocked<IAllocationRepository> = {
@@ -70,6 +75,9 @@ describe('TimesheetService', () => {
     findTeamMember: jest.fn(),
     listTeamMembers: jest.fn(),
     listOrganizationResources: jest.fn(),
+    findResourceContact: jest.fn(),
+    setTimesheetFrozen: jest.fn(),
+    listActiveResources: jest.fn(),
   };
 
   const systemConfigRepository: jest.Mocked<ISystemConfigRepository> = {

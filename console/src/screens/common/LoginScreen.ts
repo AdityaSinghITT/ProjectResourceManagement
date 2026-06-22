@@ -13,7 +13,7 @@ export const LoginScreen: Screen = {
     drawTitle('LOGIN');
 
     const username = await context.prompt.ask('Username: ');
-    const password = await context.prompt.ask('Password: ');
+    const password = await context.prompt.askHidden('Password: ');
 
     if (!username || !password) {
       console.log('\nUsername and password are required.');

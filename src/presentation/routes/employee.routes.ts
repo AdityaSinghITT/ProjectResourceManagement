@@ -1,11 +1,6 @@
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import { Router } from 'express';
-import { TimesheetService } from '../../application/services/TimesheetService';
-import { PrismaActivityTagRepository } from '../../infrastructure/prisma/repositories/ActivityTagRepository';
-import { PrismaAllocationRepository } from '../../infrastructure/prisma/repositories/AllocationRepository';
-import { PrismaResourceProfileRepository } from '../../infrastructure/prisma/repositories/ResourceProfileRepository';
-import { PrismaSystemConfigRepository } from '../../infrastructure/prisma/repositories/SystemConfigRepository';
-import { PrismaTimesheetRepository } from '../../infrastructure/prisma/repositories/TimesheetRepository';
+import { timesheetService } from '../../infrastructure/wiring/notificationWiring';
 import { ApiRoutes, EmployeeRoutes } from '../../shared/constants/apiRoutes';
 import { RoleNames } from '../../shared/constants/roleNames';
 import { EmployeeController } from '../controllers/employee.controller';
@@ -14,20 +9,6 @@ import { authenticate } from '../middleware/authenticate';
 import { requirePasswordChanged } from '../middleware/requirePasswordChanged';
 import { requirePermission } from '../middleware/requirePermission';
 import { requireRole } from '../middleware/requireRole';
-
-const resourceProfileRepository = new PrismaResourceProfileRepository();
-const allocationRepository = new PrismaAllocationRepository();
-const timesheetRepository = new PrismaTimesheetRepository();
-const systemConfigRepository = new PrismaSystemConfigRepository();
-const activityTagRepository = new PrismaActivityTagRepository();
-
-const timesheetService = new TimesheetService(
-  timesheetRepository,
-  allocationRepository,
-  resourceProfileRepository,
-  systemConfigRepository,
-  activityTagRepository,
-);
 
 const employeeController = new EmployeeController(timesheetService);
 

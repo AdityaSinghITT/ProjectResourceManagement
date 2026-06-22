@@ -17,7 +17,9 @@ export const EmployeeMenuScreen: Screen = {
 
     try {
       const reminder = await context.employee.getReminder();
-      if (reminder.showReminder && reminder.message) {
+      if (reminder.submissionFrozen && reminder.message) {
+        console.log(`\n  !! FROZEN: ${reminder.message}\n`);
+      } else if (reminder.showReminder && reminder.message) {
         console.log(`\n  !  Reminder: ${reminder.message}\n`);
       }
     } catch (error) {

@@ -4,6 +4,10 @@ import { PrismaAllocationRepository } from '../prisma/repositories/AllocationRep
 import { PrismaResourceProfileRepository } from '../prisma/repositories/ResourceProfileRepository';
 import { PrismaSystemConfigRepository } from '../prisma/repositories/SystemConfigRepository';
 import { PrismaTimesheetRepository } from '../prisma/repositories/TimesheetRepository';
+import {
+  projectRiskNotificationService,
+  timesheetComplianceService,
+} from '../wiring/notificationWiring';
 import { SchedulerRunner } from './SchedulerRunner';
 
 export async function startScheduler(): Promise<SchedulerRunner> {
@@ -25,6 +29,8 @@ export async function startScheduler(): Promise<SchedulerRunner> {
   const runner = new SchedulerRunner(
     employeeStatusService,
     missedTimesheetService,
+    timesheetComplianceService,
+    projectRiskNotificationService,
     systemConfigRepository,
     resourceProfileRepository,
   );

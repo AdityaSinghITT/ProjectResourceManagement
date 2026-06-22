@@ -41,6 +41,9 @@ describe('ProjectHealthService', () => {
     listRecentActivityTags: jest.fn(),
     listTeamEntriesForWeek: jest.fn(),
     listProjectHoursByResourceProfileForWeek: jest.fn(),
+    createPendingTimesheet: jest.fn(),
+    promotePendingToMissed: jest.fn(),
+    deleteTimesheetForWeek: jest.fn(),
   };
 
   const systemConfigRepository: jest.Mocked<ISystemConfigRepository> = {

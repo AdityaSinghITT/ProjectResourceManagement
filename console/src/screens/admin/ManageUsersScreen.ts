@@ -51,7 +51,7 @@ async function createUser(context: AppContext): Promise<void> {
   const fullName = await context.prompt.ask('Full Name         : ');
   const email = await context.prompt.ask('Email             : ');
   const username = await context.prompt.ask('Username          : ');
-  const temporaryPassword = await context.prompt.ask('Temporary Password: ');
+  const temporaryPassword = await context.prompt.askHidden('Temporary Password: ');
   const roleChoice = await context.prompt.ask('Role (1) Admin (2) Manager (3) Resource: ');
   const roleMap: Record<string, string> = { '1': 'ADMIN', '2': 'MANAGER', '3': 'RESOURCE' };
   const role = roleMap[roleChoice] ?? 'RESOURCE';

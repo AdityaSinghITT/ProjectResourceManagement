@@ -27,6 +27,9 @@ describe('MissedTimesheetService', () => {
     findTeamMember: jest.fn(),
     listTeamMembers: jest.fn(),
     listOrganizationResources: jest.fn(),
+    findResourceContact: jest.fn(),
+    setTimesheetFrozen: jest.fn(),
+    listActiveResources: jest.fn(),
   };
 
   const allocationRepository: jest.Mocked<IAllocationRepository> = {
@@ -50,6 +53,9 @@ describe('MissedTimesheetService', () => {
     listRecentActivityTags: jest.fn(),
     listTeamEntriesForWeek: jest.fn(),
     listProjectHoursByResourceProfileForWeek: jest.fn(),
+    createPendingTimesheet: jest.fn(),
+    promotePendingToMissed: jest.fn(),
+    deleteTimesheetForWeek: jest.fn(),
   };
 
   const service = new MissedTimesheetService(

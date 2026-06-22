@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AllocationService } from '../../application/services/AllocationService';
 import { ManagerDashboardService } from '../../application/services/ManagerDashboardService';
 import { ManagerProjectService } from '../../application/services/ManagerProjectService';
+import { TimesheetRestoreService } from '../../application/services/TimesheetRestoreService';
 import { TimesheetService } from '../../application/services/TimesheetService';
 import { HttpStatus } from '../../shared/constants/httpStatusCodes';
 import { ErrorTitles } from '../../shared/constants/httpStatusCodes';
@@ -25,6 +26,7 @@ export class ManagerController {
     private readonly projectService: ManagerProjectService,
     private readonly allocationService: AllocationService,
     private readonly timesheetService: TimesheetService,
+    private readonly timesheetRestoreService: TimesheetRestoreService,
   ) {}
 
   listProjects = async (req: Request, res: Response): Promise<void> => {
@@ -89,6 +91,16 @@ export class ManagerController {
       managerUserId,
       employeeId,
       query.weekStart,
+    );
+    res.status(HttpStatus.OK).json(result);
+  };
+
+  restoreTimesheetAccess = async (req: Request, res: Response): Promise<void> => {
+    const managerUserId = requireManagerUserId(req);
+    const employeeId = parsePositiveIntParam(req.params.employeeId, 'employee ID');
+    const result = await this.timesheetRestoreService.restoreSubmissionAccess(
+      managerUserId,
+      employeeId,
     );
     res.status(HttpStatus.OK).json(result);
   };

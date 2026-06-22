@@ -15,7 +15,7 @@ import { RoleNames } from '../../shared/constants/roleNames';
 import { AIService } from '../../application/services/AIService';
 import { ManagerAiController } from '../controllers/managerAi.controller';
 import { ManagerController } from '../controllers/manager.controller';
-import { timesheetService } from './employee.routes';
+import { timesheetRestoreService, timesheetService } from '../../infrastructure/wiring/notificationWiring';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { authenticate } from '../middleware/authenticate';
 import { requirePasswordChanged } from '../middleware/requirePasswordChanged';
@@ -69,6 +69,7 @@ const managerController = new ManagerController(
   managerProjectService,
   allocationService,
   timesheetService,
+  timesheetRestoreService,
 );
 
 const managerAiController = new ManagerAiController(aiService);
@@ -126,6 +127,11 @@ managerRouter.get(
   ManagerRoutes.TIMESHEET_EMPLOYEE,
   requirePermission(PermissionResource.TIMESHEETS, PermissionAction.VIEW_TEAM),
   asyncHandler(managerController.getEmployeeTimesheetDetail),
+);
+managerRouter.post(
+  ManagerRoutes.TIMESHEET_RESTORE,
+  requirePermission(PermissionResource.TIMESHEETS, PermissionAction.UPDATE),
+  asyncHandler(managerController.restoreTimesheetAccess),
 );
 
 managerRouter.post(

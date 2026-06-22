@@ -19,6 +19,12 @@ export interface CreateMissedTimesheetInput {
   projectIds: number[];
 }
 
+export interface CreatePendingTimesheetInput {
+  resourceProfileId: number;
+  weekStart: Date;
+  projectIds: number[];
+}
+
 export interface ITimesheetRepository {
   findByResourceProfileAndWeek(
     resourceProfileId: number,
@@ -26,6 +32,9 @@ export interface ITimesheetRepository {
   ): Promise<TimesheetWeekView | null>;
   createWithEntries(input: CreateTimesheetInput): Promise<TimesheetWeekView>;
   createMissedTimesheet(input: CreateMissedTimesheetInput): Promise<TimesheetWeekView>;
+  createPendingTimesheet(input: CreatePendingTimesheetInput): Promise<TimesheetWeekView>;
+  promotePendingToMissed(resourceProfileId: number, weekStart: Date): Promise<TimesheetWeekView>;
+  deleteTimesheetForWeek(resourceProfileId: number, weekStart: Date): Promise<void>;
   listHistoryByResourceProfile(resourceProfileId: number): Promise<TimesheetHistoryResult>;
   listRecentActivityTags(
     resourceProfileId: number,

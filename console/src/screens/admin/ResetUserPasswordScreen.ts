@@ -5,7 +5,7 @@ import { printApiError } from '../../ui/handleApiError';
 
 export async function runResetUserPassword(context: AppContext): Promise<void> {
   const identifier = await context.prompt.ask('Enter Username or User ID: ');
-  const newTemporaryPassword = await context.prompt.ask('New Temporary Password: ');
+  const newTemporaryPassword = await context.prompt.askHidden('New Temporary Password: ');
 
   if (!identifier || !newTemporaryPassword) {
     console.log('\nUsername or user ID and new password are required.');

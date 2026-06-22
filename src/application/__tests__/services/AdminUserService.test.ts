@@ -62,6 +62,9 @@ describe('AdminUserService', () => {
     findTeamMember: jest.fn(),
     listTeamMembers: jest.fn(),
     listOrganizationResources: jest.fn(),
+    findResourceContact: jest.fn(),
+    setTimesheetFrozen: jest.fn(),
+    listActiveResources: jest.fn(),
   };
 
   const projectRepository: jest.Mocked<IProjectRepository> = {

@@ -128,13 +128,23 @@ async function manageSkills(context: AppContext): Promise<void> {
     await context.admin.addEmployeeSkill(employeeId, { skillName, category, proficiency });
     console.log('\nSkill added.');
   } else if (action === '2') {
-    const skillId = Number(await context.prompt.ask('Skill record ID: '));
+    const listNumber = Number(await context.prompt.ask('Skill # (from list above): '));
+    const skill = skills[listNumber - 1];
+    if (!skill) {
+      console.log('\nInvalid skill number.');
+      return;
+    }
     const proficiency = await context.prompt.ask('New Proficiency: ');
-    await context.admin.updateEmployeeSkill(employeeId, skillId, proficiency);
+    await context.admin.updateEmployeeSkill(employeeId, skill.id, proficiency);
     console.log('\nProficiency updated.');
   } else if (action === '3') {
-    const skillId = Number(await context.prompt.ask('Skill record ID: '));
-    await context.admin.removeEmployeeSkill(employeeId, skillId);
+    const listNumber = Number(await context.prompt.ask('Skill # (from list above): '));
+    const skill = skills[listNumber - 1];
+    if (!skill) {
+      console.log('\nInvalid skill number.');
+      return;
+    }
+    await context.admin.removeEmployeeSkill(employeeId, skill.id);
     console.log('\nSkill removed.');
   }
 }
